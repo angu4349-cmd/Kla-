@@ -8,7 +8,7 @@ import shutil
 def install(site):
     site=Path(site)
     src=Path(__file__).resolve().parent
-    for filename in ("solutions-workspace.css","solutions-workspace.js"):
+    for filename in ("solutions-workspace.css","solutions-workspace.js","kla-validators.js","validator-ui.js","validator-ui.css"):
         shutil.copy2(src/filename,site/filename)
     (site/"solutions.html").write_text((src/"solutions-workspace.html").read_text(encoding="utf-8"),encoding="utf-8")
     print("Installed PS-style Solutions workspace")
