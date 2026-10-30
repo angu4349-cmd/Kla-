@@ -11,6 +11,10 @@ on:
       - 'scripts/solutions-workspace.css'
       - 'scripts/solutions-workspace.html'
       - 'scripts/redesign_solutions.py'
+      - 'scripts/kla-validators.js'
+      - 'scripts/validator-ui.js'
+      - 'scripts/validator-ui.css'
+      - 'scripts/test-validators.cjs'
       - '.github/workflows/verify-ps-solutions.yml'
   workflow_dispatch:
 permissions:
@@ -25,8 +29,13 @@ jobs:
         run: |
           node --check scripts/ps_solutions.js
           node --check scripts/solutions-workspace.js
+          node --check scripts/kla-validators.js
+          node --check scripts/validator-ui.js
+          node --check scripts/test-validators.cjs
       - name: Build original site and checked solutions
         run: python3 scripts/unpack.py
+      - name: Run custom validator regression suite against all published cases
+        run: node scripts/test-validators.cjs build/site
       - name: Assert inline PS solutions and downloadable outputs
         run: |
           python3 - <<'PY'
@@ -50,5 +59,8 @@ jobs:
           assert 'problemNav' in page and 'workspace' in page
           assert (site/'solutions-workspace.js').is_file()
           assert (site/'solutions-workspace.css').is_file()
+          assert (site/'kla-validators.js').is_file()
+          assert (site/'validator-ui.js').is_file()
+          assert 'Custom validator' in (site/'solutions-workspace.js').read_text()
           print('PS solutions integration and all 16 output files verified')
           PY
