@@ -26,10 +26,19 @@ check('sem bad parent',V.sem(s,{...o,subfields:'0,0,10,0,10,999'},1).verdict==='
 check('sem bad size',V.sem(s,{...o,mainfields:'0,0,10,0,10'},1).verdict==='FAIL');
 const input={steps:[{id:'S1',dependency:null},{id:'S2',dependency:['S1']}],machines:[{machine_id:'M1',step_id:'S1',cooldown_time:5,n:1},{machine_id:'M2',step_id:'S2',cooldown_time:0,n:1}],wafers:[{type:'W',quantity:1,processing_times:{S1:10,S2:20}}]};
 const output={schedule:[{wafer_id:'W-1',step:'S1',machine:'M1',start_time:0,end_time:10},{wafer_id:'W-1',step:'S2',machine:'M2',start_time:10,end_time:30}]};
-check('valid schedule limited',V.schedule(input,output,'1').verdict==='PARTIAL');
+check('valid schedule',V.schedule(input,output,'1').verdict==='PASS');
 check('schedule overlap',V.schedule(input,{schedule:[output.schedule[0],{...output.schedule[1],start_time:5,end_time:25}]},'1').verdict==='FAIL');
 check('schedule missing',V.schedule(input,{schedule:[output.schedule[0]]},'1').verdict==='FAIL');
-check('unsupported never PASS',V.validate('mapping',1,{},{}).verdict==='PARTIAL');
+const driftInput={steps:[{id:'S1',parameters:{P1:[10,20]},dependency:null}],machines:[{machine_id:'M1',step_id:'S1',cooldown_time:5,n:1,initial_parameters:{P1:19},fluctuation:{P1:2}}],wafers:[{type:'W',quantity:2,processing_times:{S1:1}}]};
+const jobs=[{wafer_id:'W-1',step:'S1',machine:'M1',start_time:0,end_time:1},{wafer_id:'W-2',step:'S1',machine:'M1',start_time:1,end_time:2}];
+check('parameter drift detected',V.schedule(driftInput,{schedule:jobs},'3a').errors.some(x=>x.code==='PARAMETER_OUT_OF_RANGE'));
+check('cooldown reset passes',V.schedule(driftInput,{schedule:[jobs[0],{...jobs[1],start_time:6,end_time:7}]},'3a').verdict==='PASS');
+check('mapping m1 partial',V.mapping({WaferDiameter:100,N:2},{points:[[0,0],[10,0]]},1).verdict==='PARTIAL');
+check('mapping outside wafer',V.mapping({WaferDiameter:100,N:1},{points:[[100,0]]},1).verdict==='FAIL');
+const wfLog='2022-02-09 11:30:00.000000;Flow Entry\\n2022-02-09 11:30:01.000000;Flow.Task Entry\\n2022-02-09 11:30:01.000000;Flow.Task Executing TimeFunction(1)\\n2022-02-09 11:30:02.000000;Flow.Task Exit\\n2022-02-09 11:30:02.000000;Flow Exit';
+check('workflow basic partial',V.workflow({yaml:'Type: Flow'},{log:wfLog},'1A').verdict==='PARTIAL');
+check('workflow unbalanced fails',V.workflow({yaml:'Type: Flow'},{log:wfLog.replace('Flow.Task Exit','Flow.Task Skipped')},'1A').verdict==='FAIL');
+check('unsupported never PASS',V.validate('mapping',1,{},{}).verdict!=='PASS');
 const site=process.argv[2];
 if(site){
  const manifest=JSON.parse(fs.readFileSync(site+'/solutions/manifest.json','utf8'));
