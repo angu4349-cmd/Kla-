@@ -1,0 +1,19 @@
+name: Audit original KLA problem statement PDFs
+on:
+  push:
+    branches:
+      - audit/verify-kla-public-solutions
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare-pdfs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare complete PDF bytes without executing third-party code
+        run: python3 scripts/audit_public_sources.py
