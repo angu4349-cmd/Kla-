@@ -23,7 +23,9 @@ def main():
         archive.extractall(DEST)
     if not (DEST / 'site' / 'index.html').is_file():
         raise ValueError('The ZIP must contain site/index.html at its root')
-    print('Website unpacked into build/site')
+    from add_solutions_page import install
+    install(DEST / 'site')
+    print('Website unpacked into build/site with Solutions audit tab')
 
 if __name__ == '__main__':
     main()
