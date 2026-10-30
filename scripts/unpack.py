@@ -25,7 +25,9 @@ def main():
         raise ValueError('The ZIP must contain site/index.html at its root')
     from add_solutions_page import install
     install(DEST / 'site')
-    print('Website unpacked into build/site with Solutions audit tab')
+    from publish_route_solutions import publish
+    publish(DEST / 'site')
+    print('Website unpacked into build/site with generated and validated route solutions')
 
 if __name__ == '__main__':
     main()
