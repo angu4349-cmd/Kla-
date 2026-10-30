@@ -6,7 +6,8 @@ const state={context:'',files:{},report:null,busy:false};
 function fields(problem){
  if(problem==='sem')return [
   ['careareas','CareAreas.csv','text/csv'],['metadata','metadata.csv','text/csv'],['mainfields','mainfields.csv','text/csv'],['subfields','subfields.csv','text/csv']];
- if(problem==='route'||problem==='schedule')return [['input','Input JSON','application/json'],['output','Output JSON','application/json']];
+ if(problem==='route'||problem==='schedule'||problem==='mapping')return [['input','Input JSON','application/json'],['output','Output JSON','application/json']];
+ if(problem==='workflow')return [['yaml','Workflow configuration YAML','text/yaml'],['log','Execution log TXT','text/plain']];
  return [];
 }
 function label(milestone,problem){return problem==='sem'?'Dataset '+milestone:problem==='route'?'Milestone '+milestone:problem==='schedule'?'Milestone '+milestone:'Problem'}
@@ -30,11 +31,11 @@ function mount(rootEl,opts){
  let html='<div class="sol-card val-workspace"><div class="sol-card-kicker">CUSTOM MILESTONE VALIDATOR</div><div class="val-top"><div><h3>Validate your submission</h3><p>Check your solution against independently implemented milestone rules. Your files stay on your device.</p></div><span class="val-local">LOCAL · NO UPLOAD</span></div>';
  if(!f.length){html+='<div class="sol-note">This problem has no sufficiently specified custom validator yet. A PASS cannot be issued until its complete rules and sample tests are established.</div><div class="val-actions"><a class="sol-action" href="index.html">Review original PS ↗</a></div></div>';rootEl.innerHTML=html;return;}
  html+='<div class="val-current"><span>SELECTED PROBLEM</span><strong>'+esc(opts.name||opts.problem)+' · '+esc(label(opts.milestone,opts.problem))+'</strong></div>';
- html+='<div class="val-upload-grid">'+f.map(([id,name,accept])=>'<label class="val-upload"><span class="val-upload-icon">↥</span><strong>'+esc(name)+'</strong><small id="fileLabel-'+id+'">Choose '+esc(name)+'</small><input type="file" data-validator-file="'+id+'" accept="'+(accept==='text/csv'?'.csv,text/csv':'.json,application/json')+'"></label>').join('')+'</div>';
+ html+='<div class="val-upload-grid">'+f.map(([id,name,accept])=>'<label class="val-upload"><span class="val-upload-icon">↥</span><strong>'+esc(name)+'</strong><small id="fileLabel-'+id+'">Choose '+esc(name)+'</small><input type="file" data-validator-file="'+id+'" accept="'+(accept==='text/csv'?'.csv,text/csv':accept==='text/yaml'?'.yaml,.yml,text/plain':accept==='text/plain'?'.txt,text/plain':'.json,application/json')+'"></label>').join('')+'</div>';
  html+='<div class="val-actions"><button type="button" class="sol-primary" id="validatorRun">Run custom validator →</button>';
  if(opts.problem==='route')html+='<button type="button" class="sol-action" id="validatorExample">Test published input &amp; output</button>';
  html+='</div><div id="validatorResults" aria-live="polite"></div>';
- html+='<div class="sol-note"><strong>Validation scope:</strong> '+(opts.problem==='route'?'Route completeness, duplicate visits, stage/camera timing, and forbidden-zone collision checks. Feasibility is not a proof of global optimality.':opts.problem==='sem'?'CSV schema, unique IDs, field dimensions, mainfield containment, subfield overlaps, and complete care-area coverage. Optimality is not graded.':'Task completeness, processing durations, machine compatibility, overlaps, dependencies, and cooldowns. Machine parameter drift remains unverified.')+'</div></div>';
+ html+='<div class="sol-note"><strong>Validation scope:</strong> '+(opts.problem==='route'?'Route completeness, duplicate visits, stage/camera timing, and forbidden-zone collision checks. Feasibility is not a proof of global optimality.':opts.problem==='sem'?'CSV schema, unique IDs, field dimensions, mainfield containment, subfield overlaps, and complete care-area coverage. Optimality is not graded.':opts.problem==='schedule'?'Task completeness, durations, machine compatibility, overlaps, dependencies, process parameter drift and cooldown simulation.':opts.problem==='mapping'?'Milestone-aware coordinate, wafer boundary, count and radius checks. Exact reticle enumeration and official output format are not certified.':'Workflow log timestamps, event formatting, entry/exit pairing, and skip consistency. YAML execution semantics require a full replay.')+'</div></div>';
  rootEl.innerHTML=html;
  for(const input of rootEl.querySelectorAll('[data-validator-file]'))input.onchange=()=>{
    const id=input.dataset.validatorFile,file=input.files?.[0];state.files[id]=file;
@@ -57,7 +58,7 @@ function mount(rootEl,opts){
      }else if(opts.problem==='sem'){
        const content={};for(const [id] of f)content[id]=await readFile(state.files[id]);
        inp={careareas:content.careareas,metadata:content.metadata};out={mainfields:content.mainfields,subfields:content.subfields};
-     }else{inp=JSON.parse(await readFile(state.files.input));out=JSON.parse(await readFile(state.files.output));}
+     }else if(opts.problem==='workflow'){inp={yaml:await readFile(state.files.yaml)};out={log:await readFile(state.files.log)};}else{inp=JSON.parse(await readFile(state.files.input));out=JSON.parse(await readFile(state.files.output));}
      const report=root.KLAValidators.validate(opts.problem,opts.milestone,inp,out);
      state.report=report;output.innerHTML=summary(report);
      output.querySelector('#validatorDownload').onclick=()=>{
