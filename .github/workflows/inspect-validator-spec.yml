@@ -1,0 +1,38 @@
+name: Inspect official workshop validator specifications
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/inspect-validator-spec.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PDF extraction
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Unpack workshop source
+        run: python3 scripts/unpack.py
+      - name: Inspect problem statement rules and official validator package
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,zipfile
+          root=Path('build/site')
+          pdfs=['data/sem-ProblemStatement.pdf','data/mapping-SW_Workshop_2024_ProblemStatement_Student_version_Final_PDF_12Jan.pdf','data/schedule-SW_Workshop_2024_WaferProcessingOptimization.pdf','data/workflow-CY22 SW Workshop-Final.pdf']
+          for name in pdfs:
+              p=root/name
+              print('\\n==== ORIGINAL PDF',name,'====',flush=True)
+              if not p.exists(): print('MISSING');continue
+              r=subprocess.run(['pdftotext','-layout',str(p),'-'],capture_output=True,text=True)
+              print(r.stdout[:26000] if r.returncode==0 else r.stderr[:2000],flush=True)
+          for p in (root/'packs').glob('*Validator*.zip'):
+              print('==== VALIDATOR ZIP CONTENTS',p,'====',flush=True)
+              try:
+                  with zipfile.ZipFile(p) as z:
+                      print('\\n'.join(z.namelist()[:80]),flush=True)
+              except Exception as e:print(str(e))
+          PY
