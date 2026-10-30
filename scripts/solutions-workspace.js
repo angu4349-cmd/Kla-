@@ -13,6 +13,7 @@ const state={id:'route',milestone:0,caseNum:1,tab:'overview',manifest:null,previ
 const url=new URL(location.href);
 const q=url.searchParams.get('ps');
 if(problems.some(p=>p.id===q))state.id=q;
+if(location.hash==='#validator')state.tab='validator';
 const msParam=Number(url.searchParams.get('milestone'));
 if(Number.isInteger(msParam)&&msParam>0)state.milestone=msParam-1;
 function active(){return problems.find(p=>p.id===state.id)||problems[3];}
