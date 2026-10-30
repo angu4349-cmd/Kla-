@@ -81,7 +81,7 @@ function sem(input,output,milestone){
  const mainSize=mainSizes[0];
  if(mainSizes.length>1)w.push({code:'MULTIPLE_MAIN_SIZES',message:'Metadata lists multiple main-field sizes; each listed size is accepted.'});
  if(!subSizes.length)fail(e,'METADATA','No subfield size found');
- for(let f of main){if(mainSizes.length&&!mainSizes.some(s=>close(f.x2-f.x1,s)&&close(f.y2-f.y1,s)))fail(e,'MAIN_SIZE','Mainfield '+f.id+' must match a permitted metadata size)}
+ for(let f of main){if(mainSizes.length&&!mainSizes.some(s=>close(f.x2-f.x1,s)&&close(f.y2-f.y1,s)))fail(e,'MAIN_SIZE','Mainfield '+f.id+' must match a permitted metadata size')}
  const lookup=new Map(main.map(f=>[f.id,f]));
  for(let f of sub){const parent=lookup.get(f.parent);if(!parent)fail(e,'PARENT','Subfield '+f.id+' references nonexistent mainfield '+f.parent);else if(!inside(f,parent))fail(e,'CONTAINMENT','Subfield '+f.id+' extends beyond mainfield '+f.parent);if(subSizes.length&&!subSizes.some(s=>close(f.x2-f.x1,s)&&close(f.y2-f.y1,s)))fail(e,'SUB_SIZE','Subfield '+f.id+' has a size not allowed by metadata')}
  // Sweep on x to detect strictly positive-area subfield overlaps, including cross-mainfield overlaps.
