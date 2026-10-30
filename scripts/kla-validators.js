@@ -113,19 +113,46 @@ function schedule(input,output,milestone){
  }
  for(let id of expected.keys())if(!seen.has(id))fail(e,'MISSING_TASK','Missing '+id);
  checks.push({name:'Task completeness',passed:!e.some(x=>['MISSING_TASK','UNKNOWN_TASK','DUPLICATE_TASK'].includes(x.code)),detail:seen.size+'/'+expected.size+' distinct tasks'});
- for(let [mac,rows] of perMachine){rows.sort((a,b)=>a.start_time-b.start_time);let machine=machines.get(mac);
- for(let i=1;i<rows.length;i++){
- const a=rows[i-1],b=rows[i];if(b.start_time<a.end_time-TOL)fail(e,'MACHINE_OVERLAP','Machine '+mac+' overlaps '+a.wafer_id+' and '+b.wafer_id);
- if(machine&&finite(machine.cooldown_time)&&machine.cooldown_time>0&&Number.isInteger(machine.n)&&machine.n>0&&i%machine.n===0&&b.start_time<a.end_time+machine.cooldown_time-TOL)fail(e,'COOLDOWN','Machine '+mac+' needs '+machine.cooldown_time+' cooldown after '+machine.n+' jobs');
- }}
+ for(let [mac,rows] of perMachine){
+ rows.sort((a,b)=>a.start_time-b.start_time);
+ const machine=machines.get(mac);if(!machine)continue;
+ const initial=machine.initial_parameters||{},fluct=machine.fluctuation||{};
+ const params={...initial};let sinceReset=0,lastEnd=null;
+ const cooldown=machine.cooldown_time??0,n=machine.n??0;
+ if((Object.keys(fluct).length||Object.keys(initial).length)&&(!Number.isInteger(n)||n<=0))fail(e,'MACHINE_N','Invalid n for machine '+mac);
+ if(!finite(cooldown)||cooldown<0)fail(e,'COOLDOWN_CONFIG','Invalid cooldown time for '+mac);
+ for(let i=0;i<rows.length;i++){
+   const r=rows[i],step=steps.get(r.step),requirements=step?.parameters||{};
+   if(lastEnd!==null){
+     if(r.start_time<lastEnd-TOL)fail(e,'MACHINE_OVERLAP','Machine '+mac+' has overlapping jobs');
+     const gap=r.start_time-lastEnd;
+     if(gap>=cooldown-TOL&&cooldown>0){Object.assign(params,initial);sinceReset=0}
+   }
+   for(let [key,range] of Object.entries(requirements)){
+     if(!Array.isArray(range)||range.length!==2||!range.every(finite)||range[0]>range[1]){fail(e,'PARAMETER_RANGE','Invalid parameter range '+key+' for '+r.step);continue}
+     const value=params[key];
+     if(!finite(value)){fail(e,'PARAMETER_MISSING','Machine '+mac+' lacks parameter '+key);continue}
+     if(value<range[0]-TOL||value>range[1]+TOL){
+       fail(e,'PARAMETER_OUT_OF_RANGE','Machine '+mac+' parameter '+key+' = '+value+' outside ['+range.join(', ')+'] before '+r.wafer_id+' / '+r.step);
+       if(lastEnd!==null&&r.start_time-lastEnd<cooldown-TOL)fail(e,'COOLDOWN','Machine '+mac+' must cool for '+cooldown+' before the next wafer');
+     }
+   }
+   sinceReset++;
+   if(Number.isInteger(n)&&n>0&&sinceReset%n===0){
+     for(let [key,delta] of Object.entries(fluct)){
+       if(!finite(delta)||!finite(params[key]))fail(e,'FLUCTUATION','Invalid machine fluctuation '+key+' for '+mac);
+       else params[key]+=delta;
+     }
+   }
+   lastEnd=r.end_time;
+ }
+ }
  for(let [wafer,rows] of perWafer){rows.sort((a,b)=>a.start_time-b.start_time);for(let i=1;i<rows.length;i++)if(rows[i].start_time<rows[i-1].end_time-TOL)fail(e,'WAFER_OVERLAP','Wafer '+wafer+' processed on two machines at once')}
  for(let [id,r] of seen){let dep=steps.get(r.step)?.dependency;if(!dep)continue;let list=Array.isArray(dep)?dep:[dep];for(let d of list){const prior=seen.get(r.wafer_id+'|'+d);if(!prior)fail(e,'DEPENDENCY_MISSING','Dependency '+d+' missing for '+id);else if(prior.end_time>r.start_time+TOL)fail(e,'DEPENDENCY_ORDER','Step '+r.step+' starts before '+d+' completes on '+r.wafer_id)}}
  checks.push({name:'Machine/wafer concurrency and dependencies',passed:!e.some(x=>['MACHINE_OVERLAP','WAFER_OVERLAP','DEPENDENCY_MISSING','DEPENDENCY_ORDER'].includes(x.code)),detail:output.schedule.length+' operations'});
- checks.push({name:'Cooldown (n jobs)',passed:!e.some(x=>x.code==='COOLDOWN'),detail:'Consecutive-job interpretation; check source PDF for reset rules'});
- const drift=input.machines.some(x=>x.initial_parameters||x.fluctuation)||input.steps.some(x=>x.parameters);
- if(drift)w.push({code:'PARAMETER_DRIFT',message:'Machine parameter fluctuation and process-window evolution are not fully modeled; passing basic checks does not establish complete validity.'});
- w.push({code:'OPTIMALITY',message:'Makespan is not proven optimal.'});
- return report('schedule',m,e,w,checks,'partial');
+ checks.push({name:'Machine parameter and cooldown simulation',passed:!e.some(x=>['COOLDOWN','PARAMETER_OUT_OF_RANGE','PARAMETER_MISSING','PARAMETER_RANGE','FLUCTUATION','MACHINE_N','COOLDOWN_CONFIG'].includes(x.code)),detail:'Replayed job order, per-n drift and idle-time resets'});
+ w.push({code:'OPTIMALITY',message:'Makespan is not proven globally optimal.'});
+ return report('schedule',m,e,w,checks,'complete');
 }
 function unsupported(problem,milestone){
  return report(problem,milestone,[],[{code:'UNSUPPORTED',message:'No trustworthy executable milestone rules have been established for this problem. Uploads cannot be certified as correct.'}],[],'partial');
