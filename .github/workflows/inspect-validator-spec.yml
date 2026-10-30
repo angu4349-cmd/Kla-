@@ -22,7 +22,7 @@ jobs:
           from pathlib import Path
           import subprocess,zipfile
           root=Path('build/site')
-          pdfs=['data/sem-ProblemStatement.pdf','data/mapping-SW_Workshop_2024_ProblemStatement_Student_version_Final_PDF_12Jan.pdf','data/schedule-SW_Workshop_2024_WaferProcessingOptimization.pdf','data/workflow-CY22 SW Workshop-Final.pdf']
+          pdfs=['data/route-Software_Workshop_Presentation_2025_Day1.pdf','data/route-Software_Workshop_Presentation_2025_Day2.pdf','data/sem-ProblemStatement.pdf','data/mapping-SW_Workshop_2024_ProblemStatement_Student_version_Final_PDF_12Jan.pdf','data/schedule-SW_Workshop_2024_WaferProcessingOptimization.pdf','data/workflow-CY22 SW Workshop-Final.pdf']
           for name in pdfs:
               p=root/name
               print('\\n==== ORIGINAL PDF',name,'====',flush=True)
