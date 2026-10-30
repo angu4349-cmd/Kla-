@@ -1,0 +1,31 @@
+/* Integrated solutions panel for the existing problem-statement view */
+.pssol{margin:26px 0 34px;border:1px solid #31455a;border-radius:20px;background:linear-gradient(155deg,#17273b,#101b2b);color:#e8f1fb;box-shadow:0 10px 35px #0002;overflow:hidden;clear:both}
+.pssol *{box-sizing:border-box}
+.pssol-header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:23px 25px}
+.pssol-eyebrow,.pssol-label{color:#b9f56c;letter-spacing:.12em;font-weight:800;font-size:11px;text-transform:uppercase}
+.pssol h2{color:#f2f7fc;margin:4px 0;font-size:clamp(20px,3vw,27px);line-height:1.25}
+.pssol p{margin:6px 0;color:#adbed1;font-size:13px;line-height:1.6}
+.pssol button{font:inherit;cursor:pointer}
+.pssol-toggle{white-space:nowrap;border:1px solid #b9f56c;border-radius:11px;padding:10px 15px;background:#b9f56c;color:#142017;font-weight:800}
+.pssol-toggle:hover{background:#d4ff98}
+.pssol-body{border-top:1px solid #31455a;padding:22px 25px 25px}
+.pssol-note{background:#23354a;border-left:3px solid #b9f56c;padding:12px 15px;border-radius:0 8px 8px 0;font-size:13px;color:#d4e1ef;margin-bottom:19px}
+.pssol-muted{color:#b2c1d1!important;font-size:13px!important}
+.pssol-label{margin:20px 0 9px}
+.pssol-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px}
+.pssol-tabs button{border:1px solid #3c5168;border-radius:9px;padding:8px 13px;background:#1c2d41;color:#c8d6e5;font-size:13px}
+.pssol-tabs button.selected{border-color:#b9f56c;background:#30442e;color:#d8ffa8}
+.pssol-tabs button:hover{border-color:#b9f56c}
+.pssol-case,.pssol-code{border:1px solid #32465d;background:#132135;border-radius:13px;padding:19px;margin-top:16px}
+.pssol-case-top{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.pssol-case-top strong,.pssol-code strong{font-size:16px;color:#f0f7fd}
+.pssol-status{font-size:12px;font-weight:750;border-radius:999px;padding:4px 10px;color:#b9f56c;background:#263e30}
+.pssol-metrics{display:flex;gap:20px;flex-wrap:wrap;margin:12px 0;color:#aebed1;font-size:13px}
+.pssol-metrics strong{color:#f0f7fd}
+.pssol-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pssol-link{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid #465d73;border-radius:9px;padding:8px 11px;text-decoration:none!important;background:#22364a;color:#c7f99b!important;font-size:12px;font-weight:700;cursor:pointer}
+.pssol-link:hover{background:#2f4c58}
+.pssol-button{font:inherit}
+.pssol pre{white-space:pre;overflow:auto;max-height:390px;padding:16px;border:1px solid #2a3c51;border-radius:10px;background:#071421;color:#d4e4ef;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;margin:16px 0 0}
+.pssol pre[hidden]{display:none}
+@media(max-width:600px){.pssol-header{padding:18px;flex-direction:column;align-items:stretch}.pssol-body{padding:16px}.pssol-toggle{width:100%}.pssol-case,.pssol-code{padding:14px}.pssol-link{flex:1 1 auto}}
