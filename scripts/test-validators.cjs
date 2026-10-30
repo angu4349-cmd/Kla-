@@ -23,7 +23,7 @@ check('valid sem',V.sem(s,o,1).verdict==='PASS');
 check('sem missing coverage',V.sem(s,{...o,subfields:'0,0,9,0,10,0'},1).verdict==='FAIL');
 check('sem overlap',V.sem(s,{...o,subfields:'0,0,10,0,10,0\n1,0,10,0,10,0'},1).verdict==='FAIL');
 check('sem bad parent',V.sem(s,{...o,subfields:'0,0,10,0,10,999'},1).verdict==='FAIL');
-check('sem duplicate IDs',V.sem(s,{...o,subfields:o.subfields+'\\n0,0,10,0,10,0'},1).verdict==='FAIL');
+check('sem duplicate IDs',V.sem(s,{...o,subfields:o.subfields+String.fromCharCode(10)+'0,0,10,0,10,0'},1).verdict==='FAIL');
 check('sem bad size',V.sem(s,{...o,mainfields:'0,0,10,0,10'},1).verdict==='FAIL');
 const input={steps:[{id:'S1',dependency:null},{id:'S2',dependency:['S1']}],machines:[{machine_id:'M1',step_id:'S1',cooldown_time:5,n:1},{machine_id:'M2',step_id:'S2',cooldown_time:0,n:1}],wafers:[{type:'W',quantity:1,processing_times:{S1:10,S2:20}}]};
 const output={schedule:[{wafer_id:'W-1',step:'S1',machine:'M1',start_time:0,end_time:10},{wafer_id:'W-1',step:'S2',machine:'M2',start_time:10,end_time:30}]};
