@@ -30,7 +30,7 @@ function route(input,output,milestone){
  if(used.size!==centers.length)fail(e,'MISSING_DIES','Missing '+(centers.length-used.size)+' of '+centers.length+' required die centers');
  checks.push({name:'Required die centers',passed:used.size===centers.length,detail:used.size+'/'+centers.length+' visited'});
  if(!finite(input.StageVelocity)||input.StageVelocity<=0)fail(e,'STAGE_SPEED','StageVelocity must be positive');
- if(!finite(input.CameraVelocity)||input.CameraVelocity<=0)fail(e,'CAMERA_SPEED','CameraVelocity must be positive');
+ if(m>=2&&(!finite(input.CameraVelocity)||input.CameraVelocity<=0))fail(e,'CAMERA_SPEED','CameraVelocity must be positive');
  if(m>=3&&(!finite(input.StageAcceleration)||input.StageAcceleration<=0||!finite(input.CameraAcceleration)||input.CameraAcceleration<=0))fail(e,'ACCELERATION','Both accelerations must be positive');
  const obstacles=m===4?(input.ForbiddenZones||[]):[];
  if(m===4&&!Array.isArray(obstacles))fail(e,'ZONES','ForbiddenZones must be an array');
@@ -45,7 +45,7 @@ function route(input,output,milestone){
  let total=0,last=0,prevAngle=finite(input.InitialAngle)?input.InitialAngle:0;
  for(const [idx,die] of visitIndices){
    let stage=0;for(let j=last;j<idx;j++)stage+=motion(dist(path[j],path[j+1]),input.StageVelocity,m>=3?input.StageAcceleration:0);
-   let camera=motion(angleDistance(prevAngle,angles[die]),input.CameraVelocity,m>=3?input.CameraAcceleration:0);
+   let camera=m>=2?motion(angleDistance(prevAngle,angles[die]),input.CameraVelocity,m>=3?input.CameraAcceleration:0):0;
    total+=Math.max(stage,camera);last=idx;prevAngle=angles[die];
  }
  if(last<path.length-1)fail(e,'TRAILING_WAYPOINTS','Path continues after the last inspected die');
