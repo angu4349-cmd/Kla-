@@ -29,7 +29,7 @@ function nav(){
  $('#problemNav').innerHTML=problems.map(p=>'<button class="sol-problem-link '+(p.id===state.id?'active':'')+'" data-problem="'+p.id+'" aria-current="'+(p.id===state.id?'page':'false')+'"><span class="sol-ps-number">'+p.num+'</span><span class="sol-nav-name">'+escapeHTML(p.short)+'<small>'+p.year+' · '+escapeHTML(p.topic)+'</small></span></button>').join('');
 }
 function tabs(){
- const t=[['overview','Overview'],['statement','Problem statement'],['solution','Solution code'],['datasets','Input / Output'],['verification','Validation']];
+ const t=[['overview','Overview'],['statement','Problem statement'],['solution','Solution code'],['datasets','Input / Output'],['verification','Validation'],['validator','Custom validator']];
  return '<div class="sol-view-tabs" role="tablist" aria-label="Problem workspace views">'+t.map(([id,label])=>'<button role="tab" aria-selected="'+(id===state.tab)+'" class="'+(id===state.tab?'active':'')+'" data-tab="'+id+'">'+label+'</button>').join('')+'</div>';
 }
 function milestonePicker(p){
@@ -75,12 +75,14 @@ function verification(p){
  const c=cases();
  return '<section class="sol-card"><div class="sol-card-kicker">INDEPENDENT VALIDATION</div><div class="sol-card-head"><div><h3>Validation results</h3><p>Results generated during the production build from original test case inputs.</p></div><span class="sol-badge good">Feasibility checks passed</span></div><div class="sol-check-grid"><div><strong>'+c.length+'</strong><span>Published cases</span></div><div><strong>'+c.length+'</strong><span>Feasible outputs</span></div><div><strong>—</strong><span>Official acceptance</span></div></div><div class="sol-note"><strong>Verification scope:</strong> all die centers are visited and route feasibility is checked against milestone constraints. This does not prove global optimality, and the official KLA validator has not approved these outputs.</div><div class="sol-case-table"><div class="sol-case-row sol-case-heading"><span>TEST CASE</span><span>TIME</span><span>STATUS</span><span>OUTPUT</span></div>'+c.map(x=>'<div class="sol-case-row"><span>Case '+x.case+'</span><span>'+Number(x.time).toFixed(6)+'</span><span class="sol-positive">✓ Feasible</span><span>'+link(x.output,'JSON',true)+'</span></div>').join('')+'</div><div class="sol-actions">'+link('solutions/manifest.json','Download audit manifest',true)+'</div></section>';
 }
+function validator(p){return '<div id="validatorMount"></div>';}
 function render(){
  const p=active();
  nav();
  const total=state.manifest?.summary?.published?.length;
  $('#verifiedCount').textContent=Number.isInteger(total)?total:'—';
- $('#workspace').innerHTML='<div class="sol-problem-heading"><div><div class="sol-kicker">'+p.num+' <span>/</span> '+p.year+' <span>/</span> '+escapeHTML(p.topic)+'</div><h2>'+escapeHTML(p.name)+'</h2><p>'+escapeHTML(p.desc)+'</p></div>'+statusBadge(p)+'</div>'+milestonePicker(p)+tabs()+'<div class="sol-tab-content" role="tabpanel">'+({overview:overview,statement,solution,datasets,verification}[state.tab]||overview)(p)+'</div>';
+ $('#workspace').innerHTML='<div class="sol-problem-heading"><div><div class="sol-kicker">'+p.num+' <span>/</span> '+p.year+' <span>/</span> '+escapeHTML(p.topic)+'</div><h2>'+escapeHTML(p.name)+'</h2><p>'+escapeHTML(p.desc)+'</p></div>'+statusBadge(p)+'</div>'+milestonePicker(p)+tabs()+'<div class="sol-tab-content" role="tabpanel">'+({overview:overview,statement,solution,datasets,verification,validator}[state.tab]||overview)(p)+'</div>';
+ if(state.tab==='validator'&&window.KLAValidatorUI)window.KLAValidatorUI.mount($('#validatorMount'),{problem:p.id,milestone:currentMilestone(),name:p.name,caseNum:state.caseNum,manifest:state.manifest});
  document.querySelectorAll('[data-problem]').forEach(b=>b.onclick=()=>selectProblem(b.dataset.problem));
  document.querySelectorAll('[data-ms]').forEach(b=>b.onclick=()=>selectMilestone(Number(b.dataset.ms)));
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>selectTab(b.dataset.tab));
