@@ -7,6 +7,10 @@ on:
       - 'scripts/ps_solutions.css'
       - 'scripts/embed_ps_solutions.py'
       - 'scripts/unpack.py'
+      - 'scripts/solutions-workspace.js'
+      - 'scripts/solutions-workspace.css'
+      - 'scripts/solutions-workspace.html'
+      - 'scripts/redesign_solutions.py'
       - '.github/workflows/verify-ps-solutions.yml'
   workflow_dispatch:
 permissions:
@@ -18,7 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check JavaScript syntax
-        run: node --check scripts/ps_solutions.js
+        run: |
+          node --check scripts/ps_solutions.js
+          node --check scripts/solutions-workspace.js
       - name: Build original site and checked solutions
         run: python3 scripts/unpack.py
       - name: Assert inline PS solutions and downloadable outputs
@@ -38,5 +44,11 @@ jobs:
               assert (site/c['input']).is_file(), c['input']
               assert (site/c['output']).is_file(), c['output']
           assert (site/'solutions/route_solver.py').is_file()
+          page=(site/'solutions.html').read_text()
+          assert 'solutions-workspace.js' in page
+          assert 'solutions-workspace.css' in page
+          assert 'problemNav' in page and 'workspace' in page
+          assert (site/'solutions-workspace.js').is_file()
+          assert (site/'solutions-workspace.css').is_file()
           print('PS solutions integration and all 16 output files verified')
           PY
