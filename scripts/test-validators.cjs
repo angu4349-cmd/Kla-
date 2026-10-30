@@ -35,7 +35,7 @@ check('parameter drift detected',V.schedule(driftInput,{schedule:jobs},'3a').err
 check('cooldown reset passes',V.schedule(driftInput,{schedule:[jobs[0],{...jobs[1],start_time:6,end_time:7}]},'3a').verdict==='PASS');
 check('mapping m1 partial',V.mapping({WaferDiameter:100,N:2},{points:[[0,0],[10,0]]},1).verdict==='PARTIAL');
 check('mapping outside wafer',V.mapping({WaferDiameter:100,N:1},{points:[[100,0]]},1).verdict==='FAIL');
-const wfLog='2022-02-09 11:30:00.000000;Flow Entry\\n2022-02-09 11:30:01.000000;Flow.Task Entry\\n2022-02-09 11:30:01.000000;Flow.Task Executing TimeFunction(1)\\n2022-02-09 11:30:02.000000;Flow.Task Exit\\n2022-02-09 11:30:02.000000;Flow Exit';
+const wfLog=['2022-02-09 11:30:00.000000;Flow Entry','2022-02-09 11:30:01.000000;Flow.Task Entry','2022-02-09 11:30:01.000000;Flow.Task Executing TimeFunction(1)','2022-02-09 11:30:02.000000;Flow.Task Exit','2022-02-09 11:30:02.000000;Flow Exit'].join(String.fromCharCode(10));
 check('workflow basic partial',V.workflow({yaml:'Type: Flow'},{log:wfLog},'1A').verdict==='PARTIAL');
 check('workflow unbalanced fails',V.workflow({yaml:'Type: Flow'},{log:wfLog.replace('Flow.Task Exit','Flow.Task Skipped')},'1A').verdict==='FAIL');
 check('unsupported never PASS',V.validate('mapping',1,{},{}).verdict!=='PASS');
