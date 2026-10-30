@@ -41,6 +41,11 @@ check('workflow basic partial',V.workflow({yaml:'Type: Flow'},{log:wfLog},'1A').
 check('workflow nested parent missing',V.workflow({yaml:'Type: Flow'},{log:wfLog.split(String.fromCharCode(10)).slice(1,4).join(String.fromCharCode(10))},'1A').verdict==='FAIL');
 check('workflow unbalanced fails',V.workflow({yaml:'Type: Flow'},{log:wfLog.replace('Flow.Task Exit','Flow.Task Skipped')},'1A').verdict==='FAIL');
 check('unsupported never PASS',V.validate('mapping',1,{},{}).verdict!=='PASS');
+const binInput={defects:'Id,X,Y,Signal'+String.fromCharCode(10)+'1,2,3,20'+String.fromCharCode(10)+'2,4,5,80',rules:['BIN_ID,RULE'+String.fromCharCode(10)+'500,Signal < 60','BIN_ID,RULE'+String.fromCharCode(10)+'501,Signal > 59 and Signal < 100'],precedence:'501 >> 500'};
+const binOutput={results:'Id,X,Y,Signal,Bincode'+String.fromCharCode(10)+'1,2,3,20,500'+String.fromCharCode(10)+'2,4,5,80,501'};
+check('valid binning partial',V.binning(binInput,binOutput).verdict==='PARTIAL');
+check('wrong bin detected',V.binning(binInput,{results:binOutput.results.replace('80,501','80,500')}).verdict==='FAIL');
+check('missing bin result',V.binning(binInput,{results:'Id,X,Y,Signal,Bincode'+String.fromCharCode(10)+'1,2,3,20,500'}).verdict==='FAIL');
 const site=process.argv[2];
 if(site){
  const manifest=JSON.parse(fs.readFileSync(site+'/solutions/manifest.json','utf8'));
