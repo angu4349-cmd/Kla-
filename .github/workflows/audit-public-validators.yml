@@ -18,5 +18,6 @@ jobs:
         run: |
           git clone -q --depth=1 https://github.com/SIVARANJANI-2K/KLA_WORKSHOP.git /tmp/kla-sem
           git clone -q --depth=1 https://github.com/livin-joseph/UnHack-2024.git /tmp/kla-schedule
+          git clone -q --depth=1 https://github.com/AakashVelusamy/kla-unhack-2022.git /tmp/kla-workflow
       - name: Run independent checks (candidate failures do not block site deployment)
-        run: node scripts/audit-external-samples.cjs /tmp/kla-sem /tmp/kla-schedule
+        run: node scripts/audit-external-samples.cjs /tmp/kla-sem /tmp/kla-schedule /tmp/kla-workflow
