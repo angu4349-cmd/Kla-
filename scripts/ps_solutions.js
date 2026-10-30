@@ -46,7 +46,7 @@
     const open=state.open;
     let body='<div class="pssol-header"><div><div class="pssol-eyebrow">REFERENCE MATERIAL · '+esc(p.year)+'</div><h2>Solution &amp; validation</h2><p>View reference code and test-case results for this problem statement.</p></div><button type="button" class="pssol-toggle" data-pssol="toggle" aria-expanded="'+open+'">'+(open?'Hide solutions −':'View solutions +')+'</button></div>';
     if (!open) return body;
-    body+='<div class="pssol-body"><div class="pssol-note">'+esc(p.note)+'</div>';
+    body+='<div class="pssol-body"><div class="pssol-note">'+esc(p.note)+'</div><div class="pssol-actions"><a class="pssol-link" href="solutions.html?ps='+encodeURIComponent(state.problem)+'&milestone='+state.milestone+'#validator">Open custom validator ↗</a></div>';
     if (state.problem !== 'route') {
       body+='<p class="pssol-muted">No independently validated downloadable solution has been published for this problem yet. Unverified code is not presented as correct.</p>';
       if (p.source) body+='<a class="pssol-link" target="_blank" rel="noopener noreferrer" href="'+esc(p.source)+'">Inspect candidate repository ↗</a>';
