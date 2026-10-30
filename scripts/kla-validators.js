@@ -209,7 +209,7 @@ function workflow(input,output,milestone){
  if(!yaml.trim()||!log.trim())fail(e,'EMPTY','YAML and log must be nonempty');
  const lines=log.split(/\r?\n/).filter(x=>x.trim()),opened=new Map(),skipped=new Set(),executed=new Set();let previous=-Infinity;
  for(let i=0;i<lines.length;i++){
-   const line=lines[i].trim(),match=line.match(/^(\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(?:\.\d+)?);\s*(.+?)\s+(Entry|Exit|Skipped|Executing\b.*)$/);
+   const line=lines[i].trim(),match=line.match(/^(\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(?:\.\d+)?)[;:]\s*(.+?)\s+(Entry|Exit|Skipped|Executing\b.*)$/);
    if(!match){fail(e,'LOG_FORMAT','Invalid timestamp/path/event format on line '+(i+1));continue}
    const time=Date.parse(match[1].replace(' ','T')+'Z'),path=match[2].trim(),event=match[3];
    if(!Number.isFinite(time))fail(e,'TIMESTAMP','Unparseable timestamp on line '+(i+1));
