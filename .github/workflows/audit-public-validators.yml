@@ -1,0 +1,22 @@
+name: Audit public SEM and wafer processing submissions
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-public-validators.yml'
+      - 'scripts/audit-external-samples.cjs'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch public reference datasets only
+        run: |
+          git clone -q --depth=1 https://github.com/SIVARANJANI-2K/KLA_WORKSHOP.git /tmp/kla-sem
+          git clone -q --depth=1 https://github.com/livin-joseph/UnHack-2024.git /tmp/kla-schedule
+      - name: Run independent checks (candidate failures do not block site deployment)
+        run: node scripts/audit-external-samples.cjs /tmp/kla-sem /tmp/kla-schedule
