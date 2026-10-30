@@ -202,7 +202,8 @@ function mapping(input,output,milestone){
 }
 function workflow(input,output,milestone){
  const e=[],w=[],checks=[],m=String(milestone??'');
- if(!['1A','1B','2A','2B'].includes(m))fail(e,'MILESTONE','Expected workflow milestone 1A, 1B, 2A or 2B');
+ if(!['1A','1B','2A','2B','3A1'].includes(m))fail(e,'MILESTONE','Expected workflow milestone 1A, 1B, 2A, 2B or 3A1');
+ if(m==='3A1')return binning(input,output,m);
  const yaml=input?.yaml,log=output?.log;
  if(typeof yaml!=='string'||typeof log!=='string'){fail(e,'FILES','Supply workflow YAML and execution log TXT');return report('workflow',m,e,w,checks,'partial')}
  if(!yaml.trim()||!log.trim())fail(e,'EMPTY','YAML and log must be nonempty');
@@ -212,15 +213,16 @@ function workflow(input,output,milestone){
    if(!match){fail(e,'LOG_FORMAT','Invalid timestamp/path/event format on line '+(i+1));continue}
    const time=Date.parse(match[1].replace(' ','T')+'Z'),path=match[2].trim(),event=match[3];
    if(!Number.isFinite(time))fail(e,'TIMESTAMP','Unparseable timestamp on line '+(i+1));
-   if(time<previous)fail(e,'TIME_ORDER','Log timestamps decrease at line '+(i+1));previous=Math.max(previous,time);
+   if(time<previous)unsorted++;previous=Math.max(previous,time);
    if(event==='Entry'){if(opened.has(path))fail(e,'DUPLICATE_ENTRY','Duplicate Entry without Exit for '+path);const parent=path.includes('.')?path.slice(0,path.lastIndexOf('.')):null;if(parent&&!opened.has(parent))fail(e,'PARENT_NOT_OPEN','Nested task '+path+' entered before parent '+parent);opened.set(path,{line:i+1,time});}
-   else if(event==='Exit'){if(!opened.has(path))fail(e,'EXIT_WITHOUT_ENTRY','Exit without Entry for '+path);else{for(let child of opened.keys())if(child.startsWith(path+'.'))fail(e,'PARENT_EARLY_EXIT','Parent '+path+' exited while '+child+' was active');opened.delete(path);}}
+   else if(event==='Exit'){if(!opened.has(path))fail(e,'EXIT_WITHOUT_ENTRY','Exit without Entry for '+path);else{const entered=opened.get(path);if(time<entered.time)fail(e,'NEGATIVE_DURATION','Exit before Entry timestamp for '+path);for(let child of opened.keys())if(child.startsWith(path+'.'))fail(e,'PARENT_EARLY_EXIT','Parent '+path+' exited while '+child+' was active');opened.delete(path);}}
    else if(event==='Skipped'){if(!opened.has(path))fail(e,'SKIP_WITHOUT_ENTRY','Skipped without Entry for '+path);if(executed.has(path))fail(e,'SKIPPED_EXECUTED','Skipped task also executed '+path);skipped.add(path)}
    else if(event.startsWith('Executing')){if(!opened.has(path))fail(e,'EXECUTE_WITHOUT_ENTRY','Executing before Entry for '+path);if(skipped.has(path))fail(e,'SKIPPED_EXECUTED','Skipped task executed '+path);executed.add(path)}
  }
+ if(unsorted)w.push({code:'CONCURRENT_LOG_ORDER',message:unsorted+' timestamp reversals in log order; concurrent threads may interleave, so global monotonicity is not required.'});
  for(let name of opened.keys())fail(e,'MISSING_EXIT','No Exit for '+name);
  if(!lines.length)fail(e,'NO_EVENTS','No log events');
- checks.push({name:'Timestamp and log event format',passed:!e.some(x=>['LOG_FORMAT','TIMESTAMP','TIME_ORDER'].includes(x.code)),detail:lines.length+' lines'});
+ checks.push({name:'Timestamp and log event format',passed:!e.some(x=>['LOG_FORMAT','TIMESTAMP','NEGATIVE_DURATION'].includes(x.code)),detail:lines.length+' lines'});
  checks.push({name:'Entry / Exit / Skipped consistency',passed:!e.some(x=>['DUPLICATE_ENTRY','EXIT_WITHOUT_ENTRY','MISSING_EXIT','SKIP_WITHOUT_ENTRY','SKIPPED_EXECUTED','EXECUTE_WITHOUT_ENTRY','PARENT_NOT_OPEN','PARENT_EARLY_EXIT'].includes(x.code)),detail:executed.size+' executing task paths'});
  w.push({code:'YAML_SEMANTICS',message:'YAML task/flow graph, sequential/concurrent timing, nested execution, variable references and conditions are not fully replayed.'});
  if(m.startsWith('2'))w.push({code:'CONDITIONS',message:'Conditions and data-passing values need execution-level verification against the actual YAML and datasets.'});
