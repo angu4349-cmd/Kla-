@@ -154,6 +154,63 @@ function schedule(input,output,milestone){
  w.push({code:'OPTIMALITY',message:'Makespan is not proven globally optimal.'});
  return report('schedule',m,e,w,checks,'complete');
 }
+function evalBinningRule(rule,signal){
+ const ors=String(rule).trim().split(/\s+or\s+/i);
+ if(!ors.length)throw Error('Empty binning rule');
+ return ors.some(part=>part.split(/\s+and\s+/i).every(atom=>{
+   const match=atom.trim().match(/^Signal\s*(<=|>=|==|=|!=|<|>)\s*(-?\d+(?:\.\d+)?)$/i);
+   if(!match)throw Error('Unsupported rule expression: '+atom);
+   const v=Number(match[2]);
+   switch(match[1]){case '<':return signal<v;case '<=':return signal<=v;case '>':return signal>v;case '>=':return signal>=v;case '==':case '=':return signal===v;case '!=':return signal!==v}
+   return false;
+ }));
+}
+function binning(input,output,milestone='3A1'){
+ const e=[],w=[],checks=[];
+ if(!input||typeof input.defects!=='string'||!Array.isArray(input.rules)||typeof input.precedence!=='string'||typeof output?.results!=='string'){
+   fail(e,'FILES','Provide DataInput.csv, one or more BinningRule CSVs, Precedence.txt and DataOutput.csv');
+   return report('workflow',milestone,e,w,checks,'partial');
+ }
+ const data=csv(input.defects),out=csv(output.results);
+ const head=['id','x','y','signal'],outhead=['id','x','y','signal','bincode'];
+ const isHeader=(row,cols)=>row&&cols.every((col,i)=>String(row[i]||'').toLowerCase()===col);
+ if(!isHeader(data[0],head))fail(e,'INPUT_HEADER','DataInput header must be Id,X,Y,Signal');
+ if(!isHeader(out[0],outhead))fail(e,'OUTPUT_HEADER','DataOutput header must be Id,X,Y,Signal,Bincode');
+ const defects=new Map(),results=new Map(),rules=new Map();
+ for(let [i,r] of data.slice(1).entries()){
+   if(r.length!==4){fail(e,'INPUT_COLUMNS','Invalid input columns at row '+(i+2));continue}
+   const id=r[0];if(!id||defects.has(id))fail(e,'INPUT_ID','Duplicate or missing defect ID '+id);
+   if(r.slice(1).some(v=>v===''||!Number.isFinite(Number(v))))fail(e,'INPUT_NUMERIC','Invalid X,Y,Signal for '+id);
+   defects.set(id,r);
+ }
+ for(let [i,r] of out.slice(1).entries()){
+   if(r.length!==5){fail(e,'OUTPUT_COLUMNS','Invalid output columns at row '+(i+2));continue}
+   const id=r[0];if(!id||results.has(id))fail(e,'OUTPUT_ID','Duplicate or missing result ID '+id);
+   results.set(id,r);
+ }
+ for(let [i,txt] of input.rules.entries()){
+   const rows=csv(txt);if(!isHeader(rows[0],['bin_id','rule']))fail(e,'RULE_HEADER','Rule file '+(i+1)+' must start with BIN_ID,RULE');
+   for(let row of rows.slice(1)){if(row.length<2||!row[0]){fail(e,'RULE_COLUMNS','Invalid rule row');continue}if(rules.has(row[0]))fail(e,'RULE_ID','Duplicate BIN_ID '+row[0]);rules.set(row[0],row.slice(1).join(','))}
+ }
+ const precedence=(input.precedence.match(/\d+/g)||[]);if(!precedence.length)fail(e,'PRECEDENCE','No BIN_ID precedence found');
+ for(let id of rules.keys())if(!precedence.includes(id))fail(e,'PRECEDENCE_MISSING','Rule '+id+' missing from precedence file');
+ let valid=0;
+ for(let [id,row] of defects){
+   const r=results.get(id);if(!r){fail(e,'MISSING_DEFECT','No output for defect '+id);continue}
+   if(row.slice(1).some((v,i)=>Number(v)!==Number(r[i+1])))fail(e,'CHANGED_DEFECT','Output changed X,Y or Signal for defect '+id);
+   const matches=[];
+   for(let [bin,rule] of rules){try{if(evalBinningRule(rule,Number(row[3])))matches.push(bin)}catch(ex){fail(e,'RULE_PARSE',ex.message)}}
+   const expected=precedence.find(bin=>matches.includes(bin));
+   if(expected===undefined){fail(e,'UNBINNED','No binning rule matches defect '+id);continue}
+   if(!Number.isFinite(Number(r[4]))||Number(r[4])!==Number(expected))fail(e,'WRONG_BIN','Defect '+id+' expected BIN '+expected+', got '+r[4]);
+   else valid++;
+ }
+ for(let id of results.keys())if(!defects.has(id))fail(e,'EXTRA_DEFECT','Unknown output defect '+id);
+ checks.push({name:'Binning rules and precedence',passed:!e.some(x=>['RULE_PARSE','RULE_ID','WRONG_BIN','UNBINNED','PRECEDENCE'].includes(x.code)),detail:valid+'/'+defects.size+' correct BIN assignments'});
+ checks.push({name:'Defect preservation',passed:!e.some(x=>['MISSING_DEFECT','EXTRA_DEFECT','CHANGED_DEFECT','INPUT_ID','OUTPUT_ID'].includes(x.code)),detail:defects.size+' source defects'});
+ w.push({code:'WORKFLOW_EXECUTION',message:'This validates exported defect binning, not YAML task execution, concurrency or intermediate merge traces.'});
+ return report('workflow',milestone,e,w,checks,'partial');
+}
 function mapping(input,output,milestone){
  const e=[],w=[],checks=[],m=Number(milestone);
  if(![1,2,3,4,5].includes(m)){fail(e,'MILESTONE','Mapping milestone must be 1–5');return report('mapping',m,e,w,checks,'partial')}
@@ -232,5 +289,5 @@ function unsupported(problem,milestone){
  return report(problem,milestone,[],[{code:'UNSUPPORTED',message:'No trustworthy executable milestone rules have been established for this problem. Uploads cannot be certified as correct.'}],[],'partial');
 }
 function validate(problem,milestone,input,output){try{switch(problem){case 'route':return route(input,output,milestone);case 'sem':return sem(input,output,milestone);case 'schedule':return schedule(input,output,milestone);case 'mapping':return mapping(input,output,milestone);case 'workflow':return workflow(input,output,milestone);default:return report(problem,milestone,[{code:'UNKNOWN_PROBLEM',message:'Unknown problem',where:''}],[],[],'partial')}}catch(ex){return report(problem,milestone,[{code:'EXCEPTION',message:String(ex.message||ex),where:''}],[],[],'partial')}}
-return {validate,route,sem,schedule,mapping,workflow,unsupported,version:'1.1.0'};
+return {validate,route,sem,schedule,mapping,workflow,binning,unsupported,version:'1.2.0'};
 });
