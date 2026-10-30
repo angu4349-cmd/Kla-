@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/audit-public-validators.yml'
       - 'scripts/audit-external-samples.cjs'
+      - 'scripts/kla-validators.js'
 permissions:
   contents: read
 jobs:
