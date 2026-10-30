@@ -24,3 +24,5 @@
 .val-issue strong{font-weight:800;margin-right:5px}.val-issue small{color:#7c8694}
 .val-issue.error{background:#fff0ed;color:#9d3f37;border:1px solid #f1d0c9}.val-issue.warning{background:#fff8e9;color:#89672c;border:1px solid #f0e2bd}
 @media(max-width:580px){.val-upload-grid{grid-template-columns:1fr}.val-top{flex-direction:column}.val-summary{padding:17px}}
+
+.val-format-help{border:1px solid #dce7ee;border-radius:10px;margin:16px 0;background:#f8fafc;padding:12px 15px}.val-format-help summary{cursor:pointer;font-size:12px;font-weight:800;color:#315a47}.val-format-help pre{white-space:pre-wrap;overflow:auto;font:12px/1.55 ui-monospace,Consolas,monospace;background:#182b40;color:#e5f3e0;border-radius:8px;padding:14px}.val-format-help p{font-size:11px!important;margin-bottom:0!important}
