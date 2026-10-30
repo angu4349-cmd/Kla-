@@ -264,7 +264,7 @@ function workflow(input,output,milestone){
  const yaml=input?.yaml,log=output?.log;
  if(typeof yaml!=='string'||typeof log!=='string'){fail(e,'FILES','Supply workflow YAML and execution log TXT');return report('workflow',m,e,w,checks,'partial')}
  if(!yaml.trim()||!log.trim())fail(e,'EMPTY','YAML and log must be nonempty');
- const lines=log.split(/\r?\n/).filter(x=>x.trim()),opened=new Map(),skipped=new Set(),executed=new Set();let previous=-Infinity;
+ const lines=log.split(/\r?\n/).filter(x=>x.trim()),opened=new Map(),skipped=new Set(),executed=new Set();let previous=-Infinity,unsorted=0;
  for(let i=0;i<lines.length;i++){
    const line=lines[i].trim(),match=line.match(/^(\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(?:\.\d+)?)[;:]\s*(.+?)\s+(Entry|Exit|Skipped|Executing\b.*)$/);
    if(!match){fail(e,'LOG_FORMAT','Invalid timestamp/path/event format on line '+(i+1));continue}
