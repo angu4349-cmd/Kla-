@@ -12,5 +12,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Install PDF text extraction utility
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
       - name: Inspect original deployed source and PDF text
         run: python3 scripts/inspect_kla_project.py
