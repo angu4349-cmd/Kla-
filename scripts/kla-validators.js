@@ -154,9 +154,81 @@ function schedule(input,output,milestone){
  w.push({code:'OPTIMALITY',message:'Makespan is not proven globally optimal.'});
  return report('schedule',m,e,w,checks,'complete');
 }
+function mapping(input,output,milestone){
+ const e=[],w=[],checks=[],m=Number(milestone);
+ if(![1,2,3,4,5].includes(m)){fail(e,'MILESTONE','Mapping milestone must be 1–5');return report('mapping',m,e,w,checks,'partial')}
+ if(!input||!output||typeof input!=='object'||typeof output!=='object'){fail(e,'SCHEMA','Supply normalized input and output JSON objects');return report('mapping',m,e,w,checks,'partial')}
+ const diameter=input.WaferDiameter??input.waferDiameter??input.diameter;
+ if(!finite(diameter)||diameter<=0)fail(e,'DIAMETER','WaferDiameter must be positive');
+ const radius=diameter/2;
+ const pts=m===1?(output.points||output.Points||[]):(output.dies||output.Dies||output.measurements||output.Measurements||[]);
+ if(!Array.isArray(pts)){fail(e,'OUTPUT','Expected points, dies or measurements array');return report('mapping',m,e,w,checks,'partial')}
+ if(!pts.length)fail(e,'EMPTY','Output has no coordinates');
+ if(m===1){
+  const n=input.N??input.n??input.NumberOfPoints;
+  if(!Number.isInteger(n)||n<=0)fail(e,'N','N must be a positive integer');
+  if(Number.isInteger(n)&&pts.length!==n)fail(e,'COUNT','Expected '+n+' points, found '+pts.length);
+  for(let i=0;i<pts.length;i++){let p=pts[i];if(!xy(p)){fail(e,'POINT','Invalid [x,y] at index '+i);continue}if(finite(radius)&&dist(p,[0,0])>radius+TOL)fail(e,'OUTSIDE_WAFER','Point '+i+' outside wafer boundary')}
+  const unique=new Set(pts.filter(xy).map(p=>p.map(x=>x.toFixed(6)).join(',')));
+  if(unique.size!==pts.length)fail(e,'DUPLICATE','Duplicate measurement points');
+  checks.push({name:'Point count and wafer boundary',passed:!e.length,detail:pts.length+' points'});
+  w.push({code:'SPACING',message:'Equal-spacing and orientation interpretation depends on the official milestone reference examples; no exact spacing certification is claimed.'});
+ }else{
+  const indices=new Set();let valid=0;
+  for(let i=0;i<pts.length;i++){
+   const item=pts[i],pos=Array.isArray(item)?item:(item?.llc||item?.LLC||item?.wafer||item?.position||item?.coordinate);
+   if(!xy(pos)){fail(e,'POINT','Missing valid wafer-coordinate [x,y] for entry '+i);continue}
+   valid++;
+   const index=item?.index||item?.dieIndex;
+   if(index!==undefined){if(!xy(index)){fail(e,'INDEX','Die index must be [row,column] at entry '+i)}else{let key=index.join(',');if(m<=3&&indices.has(key))fail(e,'DUPLICATE_DIE','Repeated die index '+key);indices.add(key)}}
+   if(m<=3&&finite(radius)){
+    const size=input.DieSize||input.dieSize;
+    if(xy(size)&&size.every(x=>x>0)){
+     const nearestX=Math.max(pos[0],Math.min(0,pos[0]+size[0])),nearestY=Math.max(pos[1],Math.min(0,pos[1]+size[1]));
+     if(Math.hypot(nearestX,nearestY)>radius+TOL)fail(e,'OUTSIDE_WAFER','Die '+i+' does not intersect wafer');
+    }else w.push({code:'DIE_SIZE',message:'Provide DieSize:[width,height] to verify die/wafer intersection.'});
+   }
+   if(m>=4&&finite(radius)){
+     const rr=m===4?(input.Radius??input.radius):radius-(input.EdgeExclusion??input.edgeExclusion??0);
+     if(!finite(rr)||rr<0)fail(e,'RADIUS','Invalid target radius/edge exclusion');
+     else if(dist(pos,[0,0])>rr+TOL)fail(e,'RADIUS_EXCEEDED','Measurement '+i+' outside allowed radius');
+   }
+  }
+  checks.push({name:'Coordinates and wafer region',passed:!e.length,detail:valid+'/'+pts.length+' valid coordinate entries'});
+  w.push({code:'GEOMETRY_COMPLETENESS',message:'Reticle indexing, all partial dies, street spacing, measurement offsets and gripper masking are not fully independently enumerated.'});
+ }
+ w.push({code:'FORMAT',message:'This is a normalized JSON checker. The original PDF shows coordinate-pair output rather than a canonical JSON submission schema.'});
+ return report('mapping',m,e,w,checks,'partial');
+}
+function workflow(input,output,milestone){
+ const e=[],w=[],checks=[],m=String(milestone??'');
+ if(!['1A','1B','2A','2B'].includes(m))fail(e,'MILESTONE','Expected workflow milestone 1A, 1B, 2A or 2B');
+ const yaml=input?.yaml,log=output?.log;
+ if(typeof yaml!=='string'||typeof log!=='string'){fail(e,'FILES','Supply workflow YAML and execution log TXT');return report('workflow',m,e,w,checks,'partial')}
+ if(!yaml.trim()||!log.trim())fail(e,'EMPTY','YAML and log must be nonempty');
+ const lines=log.split(/\r?\n/).filter(x=>x.trim()),opened=new Map(),skipped=new Set(),executed=new Set();let previous=-Infinity;
+ for(let i=0;i<lines.length;i++){
+   const line=lines[i].trim(),match=line.match(/^(\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(?:\.\d+)?);\s*(.+?)\s+(Entry|Exit|Skipped|Executing\b.*)$/);
+   if(!match){fail(e,'LOG_FORMAT','Invalid timestamp/path/event format on line '+(i+1));continue}
+   const time=Date.parse(match[1].replace(' ','T')+'Z'),path=match[2].trim(),event=match[3];
+   if(!Number.isFinite(time))fail(e,'TIMESTAMP','Unparseable timestamp on line '+(i+1));
+   if(time<previous)fail(e,'TIME_ORDER','Log timestamps decrease at line '+(i+1));previous=Math.max(previous,time);
+   if(event==='Entry'){if(opened.has(path))fail(e,'DUPLICATE_ENTRY','Duplicate Entry without Exit for '+path);opened.set(path,{line:i+1,time});}
+   else if(event==='Exit'){if(!opened.has(path))fail(e,'EXIT_WITHOUT_ENTRY','Exit without Entry for '+path);else opened.delete(path);}
+   else if(event==='Skipped'){if(!opened.has(path))fail(e,'SKIP_WITHOUT_ENTRY','Skipped without Entry for '+path);if(executed.has(path))fail(e,'SKIPPED_EXECUTED','Skipped task also executed '+path);skipped.add(path)}
+   else if(event.startsWith('Executing')){if(!opened.has(path))fail(e,'EXECUTE_WITHOUT_ENTRY','Executing before Entry for '+path);if(skipped.has(path))fail(e,'SKIPPED_EXECUTED','Skipped task executed '+path);executed.add(path)}
+ }
+ for(let name of opened.keys())fail(e,'MISSING_EXIT','No Exit for '+name);
+ if(!lines.length)fail(e,'NO_EVENTS','No log events');
+ checks.push({name:'Timestamp and log event format',passed:!e.some(x=>['LOG_FORMAT','TIMESTAMP','TIME_ORDER'].includes(x.code)),detail:lines.length+' lines'});
+ checks.push({name:'Entry / Exit / Skipped consistency',passed:!e.some(x=>['DUPLICATE_ENTRY','EXIT_WITHOUT_ENTRY','MISSING_EXIT','SKIP_WITHOUT_ENTRY','SKIPPED_EXECUTED','EXECUTE_WITHOUT_ENTRY'].includes(x.code)),detail:executed.size+' executing task paths'});
+ w.push({code:'YAML_SEMANTICS',message:'YAML task/flow graph, sequential/concurrent timing, nested execution, variable references and conditions are not fully replayed.'});
+ if(m.startsWith('2'))w.push({code:'CONDITIONS',message:'Conditions and data-passing values need execution-level verification against the actual YAML and datasets.'});
+ return report('workflow',m,e,w,checks,'partial');
+}
 function unsupported(problem,milestone){
  return report(problem,milestone,[],[{code:'UNSUPPORTED',message:'No trustworthy executable milestone rules have been established for this problem. Uploads cannot be certified as correct.'}],[],'partial');
 }
-function validate(problem,milestone,input,output){try{switch(problem){case 'route':return route(input,output,milestone);case 'sem':return sem(input,output,milestone);case 'schedule':return schedule(input,output,milestone);case 'mapping':case 'workflow':return unsupported(problem,milestone);default:return report(problem,milestone,[{code:'UNKNOWN_PROBLEM',message:'Unknown problem',where:''}],[],[],'partial')}}catch(ex){return report(problem,milestone,[{code:'EXCEPTION',message:String(ex.message||ex),where:''}],[],[],'partial')}}
-return {validate,route,sem,schedule,unsupported,version:'1.0.0'};
+function validate(problem,milestone,input,output){try{switch(problem){case 'route':return route(input,output,milestone);case 'sem':return sem(input,output,milestone);case 'schedule':return schedule(input,output,milestone);case 'mapping':return mapping(input,output,milestone);case 'workflow':return workflow(input,output,milestone);default:return report(problem,milestone,[{code:'UNKNOWN_PROBLEM',message:'Unknown problem',where:''}],[],[],'partial')}}catch(ex){return report(problem,milestone,[{code:'EXCEPTION',message:String(ex.message||ex),where:''}],[],[],'partial')}}
+return {validate,route,sem,schedule,mapping,workflow,unsupported,version:'1.1.0'};
 });
