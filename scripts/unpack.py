@@ -29,7 +29,9 @@ def main():
     publish(DEST / 'site')
     from embed_ps_solutions import install as embed_ps_solutions
     embed_ps_solutions(DEST / 'site')
-    print('Website unpacked with inline problem statement solutions and validated route outputs')
+    from redesign_solutions import install as install_solutions_workspace
+    install_solutions_workspace(DEST / 'site')
+    print('Website unpacked with PS-style solutions workspace and checked route outputs')
 
 if __name__ == '__main__':
     main()
