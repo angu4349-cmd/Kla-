@@ -1,0 +1,16 @@
+name: Inspect KLA code and PDF statements
+on:
+  push:
+    branches:
+      - audit/verify-kla-public-solutions
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect original deployed source and PDF text
+        run: python3 scripts/inspect_kla_project.py
