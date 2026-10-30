@@ -27,7 +27,9 @@ def main():
     install(DEST / 'site')
     from publish_route_solutions import publish
     publish(DEST / 'site')
-    print('Website unpacked into build/site with generated and validated route solutions')
+    from embed_ps_solutions import install as embed_ps_solutions
+    embed_ps_solutions(DEST / 'site')
+    print('Website unpacked with inline problem statement solutions and validated route outputs')
 
 if __name__ == '__main__':
     main()
