@@ -3,7 +3,8 @@
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={context:'',files:{},report:null,busy:false};
-function fields(problem){
+function fields(problem,milestone){
+ if(problem==='workflow'&&String(milestone)==='3A1')return [['defects','DataInput.csv','text/csv'],['results','DataOutput.csv','text/csv'],['precedence','Precedence.txt','text/plain'],...([500,501,502,503,504].map(n=>['rule'+n,'BinningRule_'+n+'.csv','text/csv']))];
  if(problem==='sem')return [
   ['careareas','CareAreas.csv','text/csv'],['metadata','metadata.csv','text/csv'],['mainfields','mainfields.csv','text/csv'],['subfields','subfields.csv','text/csv']];
  if(problem==='route'||problem==='schedule'||problem==='mapping')return [['input','Input JSON','application/json'],['output','Output JSON','application/json']];
@@ -27,12 +28,12 @@ function mount(rootEl,opts){
  const key=context(rootEl,opts);
  if(rootEl.dataset.validatorKey===key)return;
  rootEl.dataset.validatorKey=key;state.context=key;state.files={};state.report=null;
- const f=fields(opts.problem);
+ const f=fields(opts.problem,opts.milestone);
  let html='<div class="sol-card val-workspace"><div class="sol-card-kicker">CUSTOM MILESTONE VALIDATOR</div><div class="val-top"><div><h3>Validate your submission</h3><p>Check your solution against independently implemented milestone rules. Your files stay on your device.</p></div><span class="val-local">LOCAL · NO UPLOAD</span></div>';
  if(!f.length){html+='<div class="sol-note">This problem has no sufficiently specified custom validator yet. A PASS cannot be issued until its complete rules and sample tests are established.</div><div class="val-actions"><a class="sol-action" href="index.html">Review original PS ↗</a></div></div>';rootEl.innerHTML=html;return;}
  html+='<div class="val-current"><span>SELECTED PROBLEM</span><strong>'+esc(opts.name||opts.problem)+' · '+esc(label(opts.milestone,opts.problem))+'</strong></div>';
  if(opts.problem==='mapping'||opts.problem==='workflow'){
-   const example=opts.problem==='mapping'?(Number(opts.milestone)===1?'Input: {"WaferDiameter":300,"N":3,"Angle":0}\\nOutput: {"points":[[-100,0],[0,0],[100,0]]}':Number(opts.milestone)<=3?'Input: {"WaferDiameter":300,"DieSize":[10,10]}\\nOutput: {"dies":[{"index":[0,0],"llc":[-5,-5]}]}':'Input: {"WaferDiameter":300,"Radius":100}\\nOutput: {"measurements":[{"index":[0,0],"wafer":[10,20]}]}'):'YAML: MyFlow:\\n  Type: Flow\\n  Execution: Sequential\\n  Activities: {}\\n\\nLog: 2022-02-09 11:30:00.000000;MyFlow Entry\\n2022-02-09 11:30:00.000000;MyFlow Exit';
+   const example=opts.problem==='workflow'&&String(opts.milestone)==='3A1'?'Input CSV: Id,X,Y,Signal\\n1,0,0,80\\n\\nRule CSV: BIN_ID,RULE\\n501,Signal > 59 and Signal < 100\\n\\nPrecedence: 504 >> 503 >> 502 >> 501 >> 500\\n\\nOutput CSV: Id,X,Y,Signal,Bincode\\n1,0,0,80,501':opts.problem==='mapping'?(Number(opts.milestone)===1?'Input: {"WaferDiameter":300,"N":3,"Angle":0}\\nOutput: {"points":[[-100,0],[0,0],[100,0]]}':Number(opts.milestone)<=3?'Input: {"WaferDiameter":300,"DieSize":[10,10]}\\nOutput: {"dies":[{"index":[0,0],"llc":[-5,-5]}]}':'Input: {"WaferDiameter":300,"Radius":100}\\nOutput: {"measurements":[{"index":[0,0],"wafer":[10,20]}]}'):'YAML: MyFlow:\\n  Type: Flow\\n  Execution: Sequential\\n  Activities: {}\\n\\nLog: 2022-02-09 11:30:00.000000;MyFlow Entry\\n2022-02-09 11:30:00.000000;MyFlow Exit';
    html+='<details class="val-format-help"><summary>View expected local input/output format</summary><pre>'+esc(example)+'</pre><p>These are normalized examples for the independent checker, not the official KLA submission format. Only partial validation is available.</p></details>';
  }
  html+='<div class="val-upload-grid">'+f.map(([id,name,accept])=>'<label class="val-upload"><span class="val-upload-icon">↥</span><strong>'+esc(name)+'</strong><small id="fileLabel-'+id+'">Choose '+esc(name)+'</small><input type="file" data-validator-file="'+id+'" accept="'+(accept==='text/csv'?'.csv,text/csv':accept==='text/yaml'?'.yaml,.yml,text/plain':accept==='text/plain'?'.txt,text/plain':'.json,application/json')+'"></label>').join('')+'</div>';
@@ -40,7 +41,7 @@ function mount(rootEl,opts){
  if(opts.problem==='route')html+='<button type="button" class="sol-action" id="validatorExample">Test published input &amp; output</button>';
  if(opts.problem==='sem')html+='<a class="sol-action" href="packs/Validator.zip" download>Download original KLA validator ↓</a>';
  html+='</div><div id="validatorResults" aria-live="polite"></div>';
- html+='<div class="sol-note"><strong>Validation scope:</strong> '+(opts.problem==='route'?'Route completeness, duplicate visits, stage/camera timing, and forbidden-zone collision checks. Feasibility is not a proof of global optimality.':opts.problem==='sem'?'CSV schema, unique IDs, field dimensions, mainfield containment, subfield overlaps, and complete care-area coverage. Optimality is not graded.':opts.problem==='schedule'?'Task completeness, durations, machine compatibility, overlaps, dependencies, process parameter drift and cooldown simulation.':opts.problem==='mapping'?'Milestone-aware coordinate, wafer boundary, count and radius checks. Exact reticle enumeration and official output format are not certified.':'Workflow log timestamps, event formatting, entry/exit pairing, and skip consistency. YAML execution semantics require a full replay.')+'</div></div>';
+ html+='<div class="sol-note"><strong>Validation scope:</strong> '+(opts.problem==='route'?'Route completeness, duplicate visits, stage/camera timing, and forbidden-zone collision checks. Feasibility is not a proof of global optimality.':opts.problem==='sem'?'CSV schema, unique IDs, field dimensions, mainfield containment, subfield overlaps, and complete care-area coverage. Optimality is not graded.':opts.problem==='schedule'?'Task completeness, durations, machine compatibility, overlaps, dependencies, process parameter drift and cooldown simulation.':opts.problem==='mapping'?'Milestone-aware coordinate, wafer boundary, count and radius checks. Exact reticle enumeration and official output format are not certified.' :opts.problem==='workflow'&&String(opts.milestone)==='3A1'?'Defect IDs, coordinate preservation, binning rules, and precedence. YAML task execution is not independently replayed.':'Workflow log timestamps, event formatting, entry/exit pairing, and skip consistency. YAML execution semantics require a full replay.')+'</div></div>';
  rootEl.innerHTML=html;
  for(const input of rootEl.querySelectorAll('[data-validator-file]'))input.onchange=()=>{
    const id=input.dataset.validatorFile,file=input.files?.[0];state.files[id]=file;
@@ -63,7 +64,7 @@ function mount(rootEl,opts){
      }else if(opts.problem==='sem'){
        const content={};for(const [id] of f)content[id]=await readFile(state.files[id]);
        inp={careareas:content.careareas,metadata:content.metadata};out={mainfields:content.mainfields,subfields:content.subfields};
-     }else if(opts.problem==='workflow'){inp={yaml:await readFile(state.files.yaml)};out={log:await readFile(state.files.log)};}else{inp=JSON.parse(await readFile(state.files.input));out=JSON.parse(await readFile(state.files.output));}
+     }else if(opts.problem==='workflow'&&String(opts.milestone)==='3A1'){const ruleFiles=[];for(let n=500;n<=504;n++)ruleFiles.push(await readFile(state.files['rule'+n]));inp={defects:await readFile(state.files.defects),precedence:await readFile(state.files.precedence),rules:ruleFiles};out={results:await readFile(state.files.results)};}else if(opts.problem==='workflow'){inp={yaml:await readFile(state.files.yaml)};out={log:await readFile(state.files.log)};}else{inp=JSON.parse(await readFile(state.files.input));out=JSON.parse(await readFile(state.files.output));}
      const report=root.KLAValidators.validate(opts.problem,opts.milestone,inp,out);
      state.report=report;output.innerHTML=summary(report);
      output.querySelector('#validatorDownload').onclick=()=>{
