@@ -23,6 +23,7 @@ check('valid sem',V.sem(s,o,1).verdict==='PASS');
 check('sem missing coverage',V.sem(s,{...o,subfields:'0,0,9,0,10,0'},1).verdict==='FAIL');
 check('sem overlap',V.sem(s,{...o,subfields:'0,0,10,0,10,0\n1,0,10,0,10,0'},1).verdict==='FAIL');
 check('sem bad parent',V.sem(s,{...o,subfields:'0,0,10,0,10,999'},1).verdict==='FAIL');
+check('sem duplicate IDs',V.sem(s,{...o,subfields:o.subfields+'\\n0,0,10,0,10,0'},1).verdict==='FAIL');
 check('sem bad size',V.sem(s,{...o,mainfields:'0,0,10,0,10'},1).verdict==='FAIL');
 const input={steps:[{id:'S1',dependency:null},{id:'S2',dependency:['S1']}],machines:[{machine_id:'M1',step_id:'S1',cooldown_time:5,n:1},{machine_id:'M2',step_id:'S2',cooldown_time:0,n:1}],wafers:[{type:'W',quantity:1,processing_times:{S1:10,S2:20}}]};
 const output={schedule:[{wafer_id:'W-1',step:'S1',machine:'M1',start_time:0,end_time:10},{wafer_id:'W-1',step:'S2',machine:'M2',start_time:10,end_time:30}]};
@@ -37,6 +38,7 @@ check('mapping m1 partial',V.mapping({WaferDiameter:100,N:2},{points:[[0,0],[10,
 check('mapping outside wafer',V.mapping({WaferDiameter:100,N:1},{points:[[100,0]]},1).verdict==='FAIL');
 const wfLog=['2022-02-09 11:30:00.000000;Flow Entry','2022-02-09 11:30:01.000000;Flow.Task Entry','2022-02-09 11:30:01.000000;Flow.Task Executing TimeFunction(1)','2022-02-09 11:30:02.000000;Flow.Task Exit','2022-02-09 11:30:02.000000;Flow Exit'].join(String.fromCharCode(10));
 check('workflow basic partial',V.workflow({yaml:'Type: Flow'},{log:wfLog},'1A').verdict==='PARTIAL');
+check('workflow nested parent missing',V.workflow({yaml:'Type: Flow'},{log:wfLog.split(String.fromCharCode(10)).slice(1,4).join(String.fromCharCode(10))},'1A').verdict==='FAIL');
 check('workflow unbalanced fails',V.workflow({yaml:'Type: Flow'},{log:wfLog.replace('Flow.Task Exit','Flow.Task Skipped')},'1A').verdict==='FAIL');
 check('unsupported never PASS',V.validate('mapping',1,{},{}).verdict!=='PASS');
 const site=process.argv[2];
