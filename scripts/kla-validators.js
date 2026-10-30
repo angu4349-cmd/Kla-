@@ -75,11 +75,13 @@ function sem(input,output,milestone){
  if(!input||!output||typeof input.careareas!=='string'||typeof input.metadata!=='string'||typeof output.mainfields!=='string'||typeof output.subfields!=='string'){fail(e,'FILES','Supply CareAreas.csv, metadata.csv, mainfields.csv and subfields.csv');return report('sem',m,e,w,checks,'complete')}
  let care=[],main=[],sub=[];try{care=rectangles(input.careareas,5,e,'CareAreas');main=rectangles(output.mainfields,5,e,'mainfields');sub=rectangles(output.subfields,6,e,'subfields')}catch(ex){fail(e,'CSV',ex.message)}
  if(!care.length||!main.length||!sub.length)fail(e,'EMPTY','Care areas, mainfields and subfields must be nonempty');
- const meta=csv(input.metadata),values=meta.slice(1).flat().map(Number).filter(v=>Number.isFinite(v)&&v>0);
- if(!values.length)fail(e,'METADATA','No valid field size found');
- const mainSize=values[0],subSizes=values.slice(1);
+ const meta=csv(input.metadata),rows=meta.filter(r=>r.length>=2&&Number.isFinite(Number(r[0]))&&Number.isFinite(Number(r[1]))&&Number(r[0])>0&&Number(r[1])>0);
+ const mainSizes=[...new Set(rows.map(r=>Number(r[0])))],subSizes=[...new Set(rows.map(r=>Number(r[1])))];
+ if(!mainSizes.length)fail(e,'METADATA','No valid main-field size found');
+ const mainSize=mainSizes[0];
+ if(mainSizes.length>1)w.push({code:'MULTIPLE_MAIN_SIZES',message:'Metadata lists multiple main-field sizes; each listed size is accepted.'});
  if(!subSizes.length)fail(e,'METADATA','No subfield size found');
- for(let f of main){if(mainSize&&(!close(f.x2-f.x1,mainSize)||!close(f.y2-f.y1,mainSize)))fail(e,'MAIN_SIZE','Mainfield '+f.id+' must be '+mainSize+'×'+mainSize)}
+ for(let f of main){if(mainSizes.length&&!mainSizes.some(s=>close(f.x2-f.x1,s)&&close(f.y2-f.y1,s)))fail(e,'MAIN_SIZE','Mainfield '+f.id+' must match a permitted metadata size)}
  const lookup=new Map(main.map(f=>[f.id,f]));
  for(let f of sub){const parent=lookup.get(f.parent);if(!parent)fail(e,'PARENT','Subfield '+f.id+' references nonexistent mainfield '+f.parent);else if(!inside(f,parent))fail(e,'CONTAINMENT','Subfield '+f.id+' extends beyond mainfield '+f.parent);if(subSizes.length&&!subSizes.some(s=>close(f.x2-f.x1,s)&&close(f.y2-f.y1,s)))fail(e,'SUB_SIZE','Subfield '+f.id+' has a size not allowed by metadata')}
  // Sweep on x to detect strictly positive-area subfield overlaps, including cross-mainfield overlaps.
