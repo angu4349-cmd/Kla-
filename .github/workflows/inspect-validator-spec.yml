@@ -28,7 +28,7 @@ jobs:
               print('\\n==== ORIGINAL PDF',name,'====',flush=True)
               if not p.exists(): print('MISSING');continue
               r=subprocess.run(['pdftotext','-layout',str(p),'-'],capture_output=True,text=True)
-              print(r.stdout[:26000] if r.returncode==0 else r.stderr[:2000],flush=True)
+              print(r.stdout[:80000] if 'workflow-' in name and r.returncode==0 else r.stdout[:26000] if r.returncode==0 else r.stderr[:2000],flush=True)
           for p in (root/'packs').glob('*Validator*.zip'):
               print('==== VALIDATOR ZIP CONTENTS',p,'====',flush=True)
               try:
