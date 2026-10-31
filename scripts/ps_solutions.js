@@ -4,9 +4,9 @@
   const ROOT_ID = 'kla-ps-solution-feature';
   const DATA_URL = 'solutions/manifest.json';
   const PROBLEMS = {
-    sem: {name:'SEM Scan Layout Optimization', year:'2024', source:'https://github.com/AakashVelusamy/kla-unhack-mock-2024', note:'Independent solution validation is pending.'},
+    sem: {name:'SEM Scan Layout Optimization', year:'2024', source:'https://github.com/AakashVelusamy/kla-unhack-mock-2024', note:'The public SEM sample passed independent geometric feasibility checks. Global optimality and official validator parity remain unverified.'},
     mapping: {name:'Wafer Mapping', year:'2024', source:'', note:'Problem statement and reference solution matching are pending.'},
-    schedule: {name:'Wafer Processing Optimization', year:'2024', source:'https://github.com/livin-joseph/UnHack-2024', note:'Published schedules have not passed every required machine and cooldown check.'},
+    schedule: {name:'Wafer Processing Optimization', year:'2024', source:'https://github.com/livin-joseph/UnHack-2024', note:'All 14 public schedules passed the implemented feasibility, parameter and cooldown checks; optimality is not certified.'},
     route: {name:'Wafer Inspection Path Planning', year:'2025', source:'https://github.com/AakashVelusamy/kla-unhack-2025', note:'Independent reference solutions are available for all four milestones.'},
     workflow: {name:'Workflow & Defect Binning', year:'2022', source:'https://github.com/AakashVelusamy/kla-unhack-2022', note:'Complete workflow execution validation is pending.'}
   };
@@ -73,7 +73,7 @@
     if (!p) return '';
     const open=state.open;
     let body='<div class="pssol-header"><div><div class="pssol-eyebrow">REFERENCE MATERIAL · '+esc(p.year)+'</div><h2>Solutions &amp; custom validator</h2><p>View solutions, run milestone validators, and check your submission directly here.</p></div><button type="button" class="pssol-toggle" data-pssol="toggle" aria-expanded="'+open+'">'+(open?'Hide solutions −':'View solutions +')+'</button></div>';
-    if (!open) return body.replace('</div></div>','</div><button type="button" class="pssol-quick-validate" data-pssol="quickValidator">Validate submission →</button></div>');
+    if (!open) return body.replace('</button></div>','</button><button type="button" class="pssol-quick-validate" data-pssol="quickValidator">Validate submission →</button></div>');
     body+='<div class="pssol-body"><div class="pssol-note">'+esc(p.note)+'</div>'; 
     if (state.problem !== 'route') {
       body+='<p class="pssol-muted">No independently validated downloadable solution has been published for this problem yet. Unverified code is not presented as correct.</p>';
