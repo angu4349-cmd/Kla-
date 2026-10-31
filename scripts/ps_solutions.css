@@ -29,3 +29,54 @@
 .pssol pre{white-space:pre;overflow:auto;max-height:390px;padding:16px;border:1px solid #2a3c51;border-radius:10px;background:#071421;color:#d4e4ef;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;margin:16px 0 0}
 .pssol pre[hidden]{display:none}
 @media(max-width:600px){.pssol-header{padding:18px;flex-direction:column;align-items:stretch}.pssol-body{padding:16px}.pssol-toggle{width:100%}.pssol-case,.pssol-code{padding:14px}.pssol-link{flex:1 1 auto}}
+
+/* Inline validator integrated into the original PS workspace */
+.pssol-header .pssol-quick-validate{border:1px solid #b9f56c;background:transparent;color:#b9f56c;font-weight:800;border-radius:11px;padding:10px 15px;white-space:nowrap}
+.pssol-header .pssol-quick-validate:hover{background:#273e31}
+.pssol-validator-section{margin-top:23px;border:1px solid #425a6e;border-radius:15px;padding:19px;background:#102035}
+.pssol-validator-heading{display:flex;justify-content:space-between;align-items:center;gap:18px}
+.pssol-validator-heading h3{font-size:20px;line-height:1.3;margin:5px 0;color:#f1f7fd}
+.pssol-validator-heading p{margin:4px 0 0;color:#c1d0df}
+.pssol-validate-toggle{background:#b9f56c!important;color:#142017!important}
+.pssol-validator-milestones{margin-top:13px}
+.pssol-howto{background:#1c3248;border:1px solid #3a526a;border-radius:11px;padding:14px 16px;font-size:13px;line-height:1.7;color:#d7e4ef;margin:17px 0}
+.pssol-howto strong{color:#b9f56c}
+#pssol-validator-mount{margin-top:14px}
+#pssol-validator-mount .sol-card{max-width:none;background:#15283d;border:1px solid #3a5066;color:#e6f1fb;border-radius:13px;padding:20px}
+#pssol-validator-mount .sol-card-kicker{color:#b9f56c;font-size:10px;font-weight:850;letter-spacing:.14em;margin-bottom:10px}
+#pssol-validator-mount h3{color:#f2f7fd;margin:3px 0;font-size:19px}
+#pssol-validator-mount p{color:#b6c8d9}
+#pssol-validator-mount .val-local{color:#b9f56c;background:#263f31;border-color:#3d6746}
+#pssol-validator-mount .val-current{background:#20354a;border-color:#3e5469}
+#pssol-validator-mount .val-current span{color:#a6b6c8}
+#pssol-validator-mount .val-current strong{color:#f2f8ff}
+#pssol-validator-mount .val-upload{background:#172d41;border-color:#4d667b}
+#pssol-validator-mount .val-upload:hover{background:#243d46;border-color:#b9f56c}
+#pssol-validator-mount .val-upload-icon{color:#b9f56c}
+#pssol-validator-mount .val-upload strong{color:#f1f8fd}
+#pssol-validator-mount .val-upload small{color:#a5bbd0}
+#pssol-validator-mount .sol-primary,#pssol-validator-mount .sol-action{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;min-height:39px;padding:9px 13px;border:1px solid #496177;border-radius:9px;background:#23394e;color:#caff97;font:700 12px/1.4 inherit;cursor:pointer}
+#pssol-validator-mount .sol-primary{background:#b9f56c;color:#10241b;border-color:#b9f56c;font-weight:850}
+#pssol-validator-mount .sol-primary:hover{background:#d5ffa4}
+#pssol-validator-mount .sol-action:hover{background:#34516a}
+#pssol-validator-mount .val-actions{display:flex;gap:10px;flex-wrap:wrap;margin:17px 0}
+#pssol-validator-mount .val-check{background:#20364b;border-color:#40566c}
+#pssol-validator-mount .val-check strong{color:#e8f3ff}
+#pssol-validator-mount .val-check small{color:#b2c6d8}
+#pssol-validator-mount .val-summary{background:#1f392e;border-color:#4b7950}
+#pssol-validator-mount .val-summary.failed{background:#482b32;border-color:#93555a}
+#pssol-validator-mount .val-summary.partial{background:#403a28;border-color:#806f45}
+#pssol-validator-mount .val-summary h3{color:#b9f56c}
+#pssol-validator-mount .val-summary.failed h3{color:#ffaca4}
+#pssol-validator-mount .val-summary.partial h3{color:#f3d187}
+#pssol-validator-mount .val-overline{color:#b9c9d7}
+#pssol-validator-mount .val-summary p{color:#d8e7f2}
+#pssol-validator-mount .val-issues h4{color:#e9f4fc}
+#pssol-validator-mount .val-issue.error{background:#452c32;border-color:#7d444c;color:#ffd5d0}
+#pssol-validator-mount .val-issue.warning{background:#443b2a;border-color:#7b653e;color:#ffe3a3}
+#pssol-validator-mount .val-format-help{background:#20354a;border-color:#40566c}
+#pssol-validator-mount .val-format-help summary{color:#b9f56c}
+#pssol-validator-mount .val-format-help p{color:#b5c6d6}
+#pssol-validator-mount .val-running{background:#1d3449;border-color:#40566c;color:#d8e9f4}
+#pssol-validator-mount .sol-note{border-left:3px solid #b9f56c;background:#23384d;padding:12px 15px;border-radius:8px;color:#c4d4e2;font-size:12px;line-height:1.6}
+@media(max-width:600px){.pssol-validator-heading{flex-direction:column;align-items:stretch}.pssol-validator-section{padding:12px}.pssol-header .pssol-quick-validate{width:100%}#pssol-validator-mount .sol-card{padding:13px}}
