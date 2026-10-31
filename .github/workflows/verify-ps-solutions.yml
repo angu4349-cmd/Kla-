@@ -44,8 +44,14 @@ jobs:
           site=Path('build/site')
           index=(site/'index.html').read_text()
           assert 'ps_solutions.js' in index and 'ps_solutions.css' in index
+          assert 'kla-validators.js' in index and 'validator-ui.js' in index and 'validator-ui.css' in index
           assert (site/'ps_solutions.js').is_file()
           assert (site/'ps_solutions.css').is_file()
+          ps_js=(site/'ps_solutions.js').read_text()
+          assert 'quickValidator' in ps_js and 'validatorMarkup()' in ps_js
+          assert 'pssol-validator-mount' in ps_js and 'KLAValidatorUI.mount' in ps_js
+          assert 'How to use:' in ps_js
+          assert (site/'validator-ui.css').is_file()
           manifest=json.loads((site/'solutions/manifest.json').read_text())
           cases=[c for m in manifest['route']['milestones'] for c in m['cases']]
           assert len(cases)==16, len(cases)
