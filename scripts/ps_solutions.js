@@ -10,8 +10,15 @@
     route: {name:'Wafer Inspection Path Planning', year:'2025', source:'https://github.com/AakashVelusamy/kla-unhack-2025', note:'Independent reference solutions are available for all four milestones.'},
     workflow: {name:'Workflow & Defect Binning', year:'2022', source:'https://github.com/AakashVelusamy/kla-unhack-2022', note:'Complete workflow execution validation is pending.'}
   };
+  const VALIDATOR_MILESTONES = {
+    sem: Array.from({length:6},(_,i)=>({id:i+1,label:'Dataset '+(i+1)})),
+    mapping: Array.from({length:5},(_,i)=>({id:i+1,label:'Milestone '+(i+1)})),
+    schedule: ['0','1','2a','2b','3a','3b','3c','4a','4b','4c','5a','5b','6a','6b'].map(id=>({id,label:'Milestone '+id})),
+    workflow: ['1A','1B','2A','2B','3A1'].map(id=>({id,label:'Milestone '+id})),
+    route: [1,2,3,4].map(id=>({id,label:'Milestone '+id}))
+  };
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const state = {problem:null, milestone:1, caseNum:1, open:false, manifest:null, loading:false, codeOpen:false};
+  const state = {problem:null, milestone:1, caseNum:1, open:false, manifest:null, loading:false, codeOpen:false,validatorOpen:false,validatorMilestoneIndex:0};
   let schedulePending=false;
   function identify() {
     const hash=decodeURIComponent(location.hash.slice(1)).toLowerCase();
@@ -40,27 +47,48 @@
     const ms=state.manifest?.route?.milestones || [];
     return ms.find(m=>m.number===state.milestone)?.cases?.find(c=>c.case===state.caseNum) || null;
   }
+  function validatorMilestone() {
+    if(state.problem==='route')return state.milestone;
+    return VALIDATOR_MILESTONES[state.problem]?.[state.validatorMilestoneIndex]?.id ?? 1;
+  }
+  function validatorMarkup() {
+    const milestones=VALIDATOR_MILESTONES[state.problem]||[];
+    let html='<section class="pssol-validator-section" aria-label="Custom milestone validator">';
+    html+='<div class="pssol-validator-heading"><div><span class="pssol-label">CUSTOM MILESTONE VALIDATOR</span><h3>Test your own solution</h3><p>Run independent checks here on this problem statement page. Files stay on your device.</p></div>';
+    html+='<button type="button" class="pssol-toggle pssol-validate-toggle" data-pssol="toggleValidator" aria-expanded="'+state.validatorOpen+'">'+(state.validatorOpen?'Hide validator −':'Open validator +')+'</button></div>';
+    if(state.validatorOpen){
+      if(state.problem!=='route'){
+        html+='<div class="pssol-label">CHOOSE DATASET / MILESTONE</div><div class="pssol-tabs pssol-validator-milestones" role="group" aria-label="Validator milestone">';
+        html+=milestones.map((m,i)=>'<button type="button" data-pssol="validatorMilestone" data-value="'+i+'" class="'+(i===state.validatorMilestoneIndex?'selected':'')+'" aria-pressed="'+(i===state.validatorMilestoneIndex)+'">'+esc(m.label)+'</button>').join('');
+        html+='</div>';
+      }else html+='<p class="pssol-muted">The selected route milestone above is used for validation. Change the milestone to test another set of rules.</p>';
+      html+='<div class="pssol-howto"><strong>How to use:</strong> 1. Select the milestone. 2. Choose your input and solution output files. 3. Select <strong>Run custom validator</strong> to see errors, checks and a downloadable report.</div>';
+      html+='<div id="pssol-validator-mount"></div>';
+    }
+    html+='</section>';
+    return html;
+  }
   function content() {
     const p=PROBLEMS[state.problem];
     if (!p) return '';
     const open=state.open;
-    let body='<div class="pssol-header"><div><div class="pssol-eyebrow">REFERENCE MATERIAL · '+esc(p.year)+'</div><h2>Solution &amp; validation</h2><p>View reference code and test-case results for this problem statement.</p></div><button type="button" class="pssol-toggle" data-pssol="toggle" aria-expanded="'+open+'">'+(open?'Hide solutions −':'View solutions +')+'</button></div>';
-    if (!open) return body;
-    body+='<div class="pssol-body"><div class="pssol-note">'+esc(p.note)+'</div><div class="pssol-actions"><a class="pssol-link" href="solutions.html?ps='+encodeURIComponent(state.problem)+'&milestone='+state.milestone+'#validator">Open custom validator ↗</a></div>';
+    let body='<div class="pssol-header"><div><div class="pssol-eyebrow">REFERENCE MATERIAL · '+esc(p.year)+'</div><h2>Solutions &amp; custom validator</h2><p>View solutions, run milestone validators, and check your submission directly here.</p></div><button type="button" class="pssol-toggle" data-pssol="toggle" aria-expanded="'+open+'">'+(open?'Hide solutions −':'View solutions +')+'</button></div>';
+    if (!open) return body.replace('</div></div>','</div><button type="button" class="pssol-quick-validate" data-pssol="quickValidator">Validate submission →</button></div>');
+    body+='<div class="pssol-body"><div class="pssol-note">'+esc(p.note)+'</div>'; 
     if (state.problem !== 'route') {
       body+='<p class="pssol-muted">No independently validated downloadable solution has been published for this problem yet. Unverified code is not presented as correct.</p>';
       if (p.source) body+='<a class="pssol-link" target="_blank" rel="noopener noreferrer" href="'+esc(p.source)+'">Inspect candidate repository ↗</a>';
-      body+='<a class="pssol-link" href="solutions.html">Open solutions library ↗</a></div>';
+      body+='<a class="pssol-link" href="solutions.html">Open solutions library ↗</a>'+validatorMarkup()+'</div>';
       return body;
     }
     const milestones=state.manifest?.route?.milestones || [];
-    if (!milestones.length) return body+'<p class="pssol-muted">Loading the solution manifest…</p></div>';
+    if (!milestones.length) return body+'<p class="pssol-muted">Loading the solution manifest…</p>'+validatorMarkup()+'</div>';
     body+='<div class="pssol-label">CHOOSE MILESTONE</div><div class="pssol-tabs" role="group" aria-label="Solution milestone">';
     body+=milestones.map(m=>'<button type="button" data-pssol="milestone" data-value="'+m.number+'" class="'+(m.number===state.milestone?'selected':'')+'" aria-pressed="'+(m.number===state.milestone)+'">Milestone '+m.number+'</button>').join('');
     body+='</div>';
     const milestone=milestones.find(m=>m.number===state.milestone);
     const cases=milestone?.cases||[];
-    if (!cases.length) return body+'<p class="pssol-muted">No validated outputs available for this milestone.</p></div>';
+    if (!cases.length) return body+'<p class="pssol-muted">No validated outputs available for this milestone.</p>'+validatorMarkup()+'</div>';
     if (!cases.some(c=>c.case===state.caseNum)) state.caseNum=cases[0].case;
     body+='<div class="pssol-label">TEST CASE</div><div class="pssol-tabs pssol-cases" role="group" aria-label="Solution test case">';
     body+=cases.map(c=>'<button type="button" data-pssol="case" data-value="'+c.case+'" class="'+(c.case===state.caseNum?'selected':'')+'" aria-pressed="'+(c.case===state.caseNum)+'">Case '+c.case+'</button>').join('');
@@ -69,7 +97,7 @@
     if (c) {
       body+='<div class="pssol-case"><div class="pssol-case-top"><strong>Milestone '+state.milestone+' · Test case '+c.case+'</strong><span class="pssol-status">✓ Feasibility checked</span></div><div class="pssol-metrics"><span>Dies <strong>'+esc(c.dies)+'</strong></span><span>Total time <strong>'+Number(c.time).toFixed(6)+'</strong></span></div><p class="pssol-muted">Generated using the independent Python solver and checked for route feasibility. Global optimality and official acceptance are not claimed.</p><div class="pssol-actions">'+link(c.input,'Download input JSON')+link(c.output,'Download output JSON')+'<button type="button" class="pssol-link pssol-button" data-pssol="preview">Preview output</button></div><pre id="pssol-output" hidden aria-label="Output JSON preview"></pre></div>';
     }
-    body+='<div class="pssol-code"><strong>Reference implementation</strong><p class="pssol-muted">Python route solver for Milestones 1–4. This is separate from the original third-party code.</p><div class="pssol-actions">'+link('solutions/route_solver.py','Download Python solution')+'<button type="button" class="pssol-link pssol-button" data-pssol="code">'+(state.codeOpen?'Hide code −':'Preview code +')+'</button><a class="pssol-link" href="solutions.html">Full solutions library ↗</a></div><pre id="pssol-code-preview" '+(state.codeOpen?'':'hidden')+' aria-label="Python solution code"></pre></div></div>';
+    body+='<div class="pssol-code"><strong>Reference implementation</strong><p class="pssol-muted">Python route solver for Milestones 1–4. This is separate from the original third-party code.</p><div class="pssol-actions">'+link('solutions/route_solver.py','Download Python solution')+'<button type="button" class="pssol-link pssol-button" data-pssol="code">'+(state.codeOpen?'Hide code −':'Preview code +')+'</button><a class="pssol-link" href="solutions.html">Full solutions library ↗</a></div><pre id="pssol-code-preview" '+(state.codeOpen?'':'hidden')+' aria-label="Python solution code"></pre></div>'+validatorMarkup()+'</div>';
     return body;
   }
   async function loadManifest() {
@@ -98,6 +126,9 @@
       btn.addEventListener('click',()=>{
         const kind=btn.dataset.pssol;
         if(kind==='toggle') {state.open=!state.open;state.codeOpen=false;render();}
+        if(kind==='quickValidator'){state.open=true;state.validatorOpen=true;render();}
+        if(kind==='toggleValidator'){state.validatorOpen=!state.validatorOpen;render();}
+        if(kind==='validatorMilestone'){state.validatorMilestoneIndex=Number(btn.dataset.value);render();}
         if(kind==='milestone'){state.milestone=Number(btn.dataset.value);state.caseNum=1;state.codeOpen=false;render();}
         if(kind==='case'){state.caseNum=Number(btn.dataset.value);state.codeOpen=false;render();}
         if(kind==='preview'){const c=selectedCase();if(c)preview(c.output,'pssol-output');}
@@ -105,12 +136,13 @@
       });
     });
   }
+  function pName(id){return PROBLEMS[id]?.name||id;}
   function render() {
     const problem=identify(), main=activeMain();
     const existing=document.getElementById(ROOT_ID);
     if(!problem||!main) {existing?.remove();return;}
     if(problem!==state.problem) {
-      state.problem=problem;state.open=false;state.milestone=1;state.caseNum=1;state.codeOpen=false;
+      state.problem=problem;state.open=false;state.milestone=1;state.caseNum=1;state.codeOpen=false;state.validatorOpen=false;state.validatorMilestoneIndex=0;
     }
     // The original SPA replaces its own view; attach inside the problem statement, never the global navigation.
     let root=existing;
@@ -123,6 +155,10 @@
     }
     const next=content();
     if(root.dataset.html!==next){root.innerHTML=next;root.dataset.html=next;bind(root);}
+    if(state.open&&state.validatorOpen&&window.KLAValidatorUI){
+      const mount=root.querySelector('#pssol-validator-mount');
+      if(mount)window.KLAValidatorUI.mount(mount,{problem:state.problem,milestone:validatorMilestone(),name:pName(state.problem),caseNum:state.caseNum,manifest:state.manifest});
+    }
     if(state.open&&state.problem==='route'&&!state.manifest)loadManifest();
   }
   function schedule() {
