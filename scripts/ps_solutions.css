@@ -55,7 +55,7 @@
 #pssol-validator-mount .val-upload-icon{color:#b9f56c}
 #pssol-validator-mount .val-upload strong{color:#f1f8fd}
 #pssol-validator-mount .val-upload small{color:#a5bbd0}
-#pssol-validator-mount .sol-primary,#pssol-validator-mount .sol-action{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;min-height:39px;padding:9px 13px;border:1px solid #496177;border-radius:9px;background:#23394e;color:#caff97;font:700 12px/1.4 inherit;cursor:pointer}
+#pssol-validator-mount .sol-primary,#pssol-validator-mount .sol-action{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;min-height:39px;padding:9px 13px;border:1px solid #496177;border-radius:9px;background:#23394e;color:#caff97;font-family:inherit;font-size:12px;font-weight:700;line-height:1.4;cursor:pointer}
 #pssol-validator-mount .sol-primary{background:#b9f56c;color:#10241b;border-color:#b9f56c;font-weight:850}
 #pssol-validator-mount .sol-primary:hover{background:#d5ffa4}
 #pssol-validator-mount .sol-action:hover{background:#34516a}
