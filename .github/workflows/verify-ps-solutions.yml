@@ -15,6 +15,7 @@ on:
       - 'scripts/validator-ui.js'
       - 'scripts/validator-ui.css'
       - 'scripts/test-validators.cjs'
+      - 'scripts/test-validator-browser.cjs'
       - '.github/workflows/verify-ps-solutions.yml'
   workflow_dispatch:
 permissions:
@@ -32,10 +33,15 @@ jobs:
           node --check scripts/kla-validators.js
           node --check scripts/validator-ui.js
           node --check scripts/test-validators.cjs
+          node --check scripts/test-validator-browser.cjs
       - name: Build original site and checked solutions
         run: python3 scripts/unpack.py
       - name: Run custom validator regression suite against all published cases
         run: node scripts/test-validators.cjs build/site
+      - name: Test actual in-PS uploads and validator result UI
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts jsdom@26
+          node scripts/test-validator-browser.cjs build/site
       - name: Assert inline PS solutions and downloadable outputs
         run: |
           python3 - <<'PY'
