@@ -185,10 +185,13 @@ function binning(input,output,milestone='3A1'){
    fail(e,'FILES','Provide DataInput.csv, one or more BinningRule CSVs, Precedence.txt and DataOutput.csv');
    return report('workflow',milestone,e,w,checks,'partial');
  }
+ if(input.rules.length===0||input.rules.length>100){fail(e,'RULE_FILES','Provide 1–100 binning rule files');return report('workflow',milestone,e,w,checks,'partial')}
  const data=csv(input.defects),out=csv(output.results);
  const head=['id','x','y','signal'],outhead=['id','x','y','signal','bincode'];
  const isHeader=(row,cols)=>row&&cols.every((col,i)=>String(row[i]||'').toLowerCase()===col);
  if(!isHeader(data[0],head))fail(e,'INPUT_HEADER','DataInput header must be Id,X,Y,Signal');
+ if(data.length<2||out.length<2)fail(e,'EMPTY_DATA','Defect input and output must contain at least one data row');
+ if(data.length>100000||out.length>100000){fail(e,'INPUT_LIMIT','Defect CSV exceeds interactive validator limit');return report('workflow',milestone,e,w,checks,'partial')}
  if(!isHeader(out[0],outhead))fail(e,'OUTPUT_HEADER','DataOutput header must be Id,X,Y,Signal,Bincode');
  const defects=new Map(),results=new Map(),rules=new Map();
  for(let [i,r] of data.slice(1).entries()){
@@ -204,7 +207,7 @@ function binning(input,output,milestone='3A1'){
  }
  for(let [i,txt] of input.rules.entries()){
    const rows=csv(txt);if(!isHeader(rows[0],['bin_id','rule']))fail(e,'RULE_HEADER','Rule file '+(i+1)+' must start with BIN_ID,RULE');
-   for(let row of rows.slice(1)){if(row.length<2||!row[0]){fail(e,'RULE_COLUMNS','Invalid rule row');continue}if(rules.has(row[0]))fail(e,'RULE_ID','Duplicate BIN_ID '+row[0]);rules.set(row[0],row.slice(1).join(','))}
+   for(let row of rows.slice(1)){if(row.length<2||!row[0]){fail(e,'RULE_COLUMNS','Invalid rule row');continue}if(rules.has(row[0]))fail(e,'RULE_ID','Duplicate BIN_ID '+row[0]);const expression=row.slice(1).join(',').trim();const atoms=expression.split(/\s+(?:and|or)\s+/i);if(!atoms.length||atoms.some(atom=>!/^Signal\s*(?:<=|>=|==|=|!=|<|>)\s*-?\d+(?:\.\d+)?$/i.test(atom.trim())))fail(e,'RULE_PARSE','Unsupported or malformed rule for BIN_ID '+row[0]+': '+expression);rules.set(row[0],expression)}
  }
  const precedenceText=input.precedence.trim(),precedence=(precedenceText.match(/\d+/g)||[]);if(!/^\d+(?:\s*>>\s*\d+)*$/.test(precedenceText))fail(e,'PRECEDENCE_FORMAT','Precedence must be BIN_ID >> BIN_ID >> ...');if(!precedence.length)fail(e,'PRECEDENCE','No BIN_ID precedence found');if(new Set(precedence).size!==precedence.length)fail(e,'PRECEDENCE_DUPLICATE','Duplicate BIN_ID in precedence chain');
  for(let id of rules.keys())if(!precedence.includes(id))fail(e,'PRECEDENCE_MISSING','Rule '+id+' missing from precedence file');
