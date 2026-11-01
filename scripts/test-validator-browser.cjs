@@ -82,6 +82,14 @@ async function main(){
   const mount=w.document.querySelector('#pssol-validator-mount');
   assert.ok(mount.querySelector('#validatorRun'),id+' has no run button');
   await validate(mount,w,fixtures[id],id==='sem'||id==='schedule'||id==='route'?'PASS':'PARTIAL');
+  const invalid={
+    sem:{subfields:'0,0,10,0,10,999'},
+    mapping:{output:JSON.stringify({points:[[0,0],[999,999]]})},
+    schedule:{output:JSON.stringify({schedule:[{wafer_id:'W-1',step:'S1',machine:'M1',start_time:0,end_time:1}]})},
+    route:{output:JSON.stringify({TotalTime:999,Path:[[0,0],[10,0],[20,0]]})},
+    workflow:{log:'not-a-valid-workflow-execution-log'}
+  }[id];
+  await validate(mount,w,invalid,'FAIL');
   counter++;
   w.__closed=true;
   w.close();
@@ -97,6 +105,6 @@ async function main(){
  await validate(sol.window.document,sol.window,fixtures.sem,'PASS');
  counter++;
  sol.window.close();
- console.log('Browser DOM validator E2E smoke tests passed:',counter,'page flows');
+ console.log('Browser DOM validator E2E smoke tests passed:',counter,'valid/invalid upload flows');
 }
 main().catch(e=>{console.error(e.stack);process.exitCode=1});
