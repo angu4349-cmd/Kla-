@@ -46,6 +46,21 @@ const binOutput={results:'Id,X,Y,Signal,Bincode'+String.fromCharCode(10)+'1,2,3,
 check('valid binning partial',V.binning(binInput,binOutput).verdict==='PARTIAL');
 check('wrong bin detected',V.binning(binInput,{results:binOutput.results.replace('80,501','80,500')}).verdict==='FAIL');
 check('missing bin result',V.binning(binInput,{results:'Id,X,Y,Signal,Bincode'+String.fromCharCode(10)+'1,2,3,20,500'}).verdict==='FAIL');
+// Adversarial cases that previously could slip through overly lenient checks.
+check('route duplicate target centers rejected',V.route({...routeInput(1),Dies:[die(10,0),die(10,0)]},routeOutput(1),1).verdict==='FAIL');
+check('route invalid stage speed rejected',V.route({...routeInput(1),StageVelocity:0},routeOutput(1),1).verdict==='FAIL');
+check('route milestone 4 requires forbidden-zone input',V.route({...routeInput(4),ForbiddenZones:undefined},routeOutput(4),4).verdict==='FAIL');
+check('SEM missing numeric coordinate rejected',V.sem(s,{...o,subfields:'0,,10,0,10,0'},1).verdict==='FAIL');
+check('SEM malformed metadata rejected',V.sem({...s,metadata:'Main Field Size,Sub Field size'+String.fromCharCode(10)+'12,10'+String.fromCharCode(10)+'invalid,5'},o,1).verdict==='FAIL');
+check('schedule empty wafer list rejected',V.schedule({...input,wafers:[]},{schedule:[]},'1').verdict==='FAIL');
+check('schedule unknown input step rejected',V.schedule({...input,steps:[{id:'WRONG',dependency:null}]},output,'1').verdict==='FAIL');
+check('schedule unknown milestone rejected',V.schedule(input,output,'99').verdict==='FAIL');
+check('mapping noninteger die index rejected',V.mapping({WaferDiameter:100,DieSize:[10,10]},{dies:[{index:[0.5,1],llc:[-5,-5]}]},2).verdict==='FAIL');
+check('mapping missing index rejected',V.mapping({WaferDiameter:100,DieSize:[10,10]},{dies:[{llc:[-5,-5]}]},2).verdict==='FAIL');
+check('binning malformed rule rejected',V.binning({...binInput,rules:['BIN_ID,RULE'+String.fromCharCode(10)+'500,Signal < 60 or unexpected',binInput.rules[1]]},binOutput).verdict==='FAIL');
+check('binning duplicate precedence rejected',V.binning({...binInput,precedence:'501 >> 500 >> 501'},binOutput).verdict==='FAIL');
+check('binning empty output rejected',V.binning(binInput,{results:'Id,X,Y,Signal,Bincode'}).verdict==='FAIL');
+check('binning invalid precedence format rejected',V.binning({...binInput,precedence:'501 and 500'},binOutput).verdict==='FAIL');
 const site=process.argv[2];
 if(site){
  const manifest=JSON.parse(fs.readFileSync(site+'/solutions/manifest.json','utf8'));
