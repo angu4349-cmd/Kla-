@@ -22,18 +22,22 @@ function route(input,output,milestone){
  if(![1,2,3,4].includes(m)){fail(e,'MILESTONE','Milestone must be 1–4');return report('route',m,e,w,checks,'complete')}
  if(!input||!output||!Array.isArray(input.Dies)||!Array.isArray(output.Path)){fail(e,'SCHEMA','Input must contain Dies and output must contain Path');return report('route',m,e,w,checks,'complete')}
  if(!xy(input.InitialPosition)||!input.Dies.length||!input.Dies.every(d=>Array.isArray(d.Corners)&&d.Corners.length===4&&d.Corners.every(xy))){fail(e,'INPUT','Invalid die corners or initial position');return report('route',m,e,w,checks,'complete')}
- const path=output.Path;if(!path.length||!path.every(xy)){fail(e,'PATH','Path must contain finite [x,y] pairs');return report('route',m,e,w,checks,'complete')}
+ const path=output.Path;if(path.length>100000){fail(e,'PATH_LENGTH','Path exceeds 100,000 waypoints');return report('route',m,e,w,checks,'partial')}
+ if(!path.length||!path.every(xy)){fail(e,'PATH','Path must contain finite [x,y] pairs');return report('route',m,e,w,checks,'complete')}
  if(!finite(output.TotalTime)||output.TotalTime<0)fail(e,'TOTAL_TIME','TotalTime must be finite and nonnegative');
  if(!near(path[0],input.InitialPosition))fail(e,'START','Path must begin at InitialPosition');
  const centers=input.Dies.map(center),angles=input.Dies.map(angle),used=new Set(),visitIndices=[];
+ if(input.Dies.length>5000){fail(e,'DIE_LIMIT','Input has more than 5,000 dies; interactive validator limit exceeded');return report('route',m,e,w,checks,'partial')}
+ for(let i=0;i<centers.length;i++)for(let j=0;j<i;j++)if(near(centers[i],centers[j])){fail(e,'DUPLICATE_DIE_CENTER','Distinct input dies share indistinguishable inspection centers');break}
+ if(m>=2&&!finite(input.InitialAngle))fail(e,'INITIAL_ANGLE','InitialAngle must be finite for camera rotation');
  for(let j=1;j<path.length;j++){let hits=[];for(let i=0;i<centers.length;i++)if(near(path[j],centers[i]))hits.push(i);if(hits.length){let free=hits.find(i=>!used.has(i));if(free===undefined){fail(e,'DUPLICATE_DIE','Die center visited more than once','Path['+j+']');continue}used.add(free);visitIndices.push([j,free]);}}
  if(used.size!==centers.length)fail(e,'MISSING_DIES','Missing '+(centers.length-used.size)+' of '+centers.length+' required die centers');
  checks.push({name:'Required die centers',passed:used.size===centers.length,detail:used.size+'/'+centers.length+' visited'});
  if(!finite(input.StageVelocity)||input.StageVelocity<=0)fail(e,'STAGE_SPEED','StageVelocity must be positive');
  if(m>=2&&(!finite(input.CameraVelocity)||input.CameraVelocity<=0))fail(e,'CAMERA_SPEED','CameraVelocity must be positive');
  if(m>=3&&(!finite(input.StageAcceleration)||input.StageAcceleration<=0||!finite(input.CameraAcceleration)||input.CameraAcceleration<=0))fail(e,'ACCELERATION','Both accelerations must be positive');
- const obstacles=m===4?(input.ForbiddenZones||[]):[];
- if(m===4&&!Array.isArray(obstacles))fail(e,'ZONES','ForbiddenZones must be an array');
+ const obstacles=m===4?input.ForbiddenZones:[];
+ if(m===4&&!Array.isArray(obstacles)){fail(e,'ZONES','ForbiddenZones must be an array');return report('route',m,e,w,checks,'complete')}
  if(Array.isArray(obstacles)){
  for(let k=0;k<obstacles.length;k++){let z=obstacles[k];if(!z||!xy(z.BottomLeft)||!xy(z.TopRight)||z.BottomLeft.some((v,i)=>v>=z.TopRight[i])){fail(e,'ZONE_FORMAT','Invalid forbidden rectangle','ForbiddenZones['+k+']');continue}
  for(let j=0;j+1<path.length;j++)if(crosses(path[j],path[j+1],z))fail(e,'COLLISION','Path segment touches or enters forbidden zone '+k,'Path['+j+']→['+(j+1)+']');
@@ -59,7 +63,7 @@ function route(input,output,milestone){
  return report('route',m,e,w,checks,'complete');
 }
 function csv(text){if(typeof text!=='string')throw Error('CSV text required');return text.replace(/^\uFEFF/,'').split(/\r?\n/).map(l=>l.trim()).filter(l=>l&&!l.startsWith('#')).map(l=>l.split(',').map(x=>x.trim().replace(/^"|"$/g,'')))}
-function rectangles(text,columns,errors,label){let rows=csv(text),out=[],ids=new Set();for(let i=0;i<rows.length;i++){const r=rows[i];if(i===0&&/^(id|index)$/i.test(r[0]))continue;if(r.length!==columns){fail(errors,'CSV_COLUMNS',label+' row '+(i+1)+' needs '+columns+' columns');continue}const id=r[0],nums=r.slice(1,5).map(Number);if(!id||ids.has(id))fail(errors,'DUPLICATE_ID',label+' duplicate/empty ID '+id);ids.add(id);if(nums.some(v=>!Number.isFinite(v))||nums[0]>=nums[1]||nums[2]>=nums[3]){fail(errors,'RECTANGLE',label+' invalid rectangle at row '+(i+1));continue}out.push({id,x1:nums[0],x2:nums[1],y1:nums[2],y2:nums[3],parent:r[5]})}return out}
+function rectangles(text,columns,errors,label){let rows=csv(text),out=[],ids=new Set();for(let i=0;i<rows.length;i++){const r=rows[i];if(i===0&&/^(id|index)$/i.test(r[0]))continue;if(r.length!==columns){fail(errors,'CSV_COLUMNS',label+' row '+(i+1)+' needs '+columns+' columns');continue}const id=r[0],nums=r.slice(1,5).map(v=>v===''?NaN:Number(v));if(!id||ids.has(id))fail(errors,'DUPLICATE_ID',label+' duplicate/empty ID '+id);ids.add(id);if(nums.some(v=>!Number.isFinite(v))||nums[0]>=nums[1]||nums[2]>=nums[3]){fail(errors,'RECTANGLE',label+' invalid rectangle at row '+(i+1));continue}out.push({id,x1:nums[0],x2:nums[1],y1:nums[2],y2:nums[3],parent:r[5]})}return out}
 function overlap(a,b){return Math.min(a.x2,b.x2)-Math.max(a.x1,b.x1)>TOL&&Math.min(a.y2,b.y2)-Math.max(a.y1,b.y1)>TOL}
 function inside(a,b){return a.x1>=b.x1-TOL&&a.x2<=b.x2+TOL&&a.y1>=b.y1-TOL&&a.y2<=b.y2+TOL}
 function covered(care,fields){
@@ -75,12 +79,14 @@ function sem(input,output,milestone){
  if(!input||!output||typeof input.careareas!=='string'||typeof input.metadata!=='string'||typeof output.mainfields!=='string'||typeof output.subfields!=='string'){fail(e,'FILES','Supply CareAreas.csv, metadata.csv, mainfields.csv and subfields.csv');return report('sem',m,e,w,checks,'complete')}
  let care=[],main=[],sub=[];try{care=rectangles(input.careareas,5,e,'CareAreas');main=rectangles(output.mainfields,5,e,'mainfields');sub=rectangles(output.subfields,6,e,'subfields')}catch(ex){fail(e,'CSV',ex.message)}
  if(!care.length||!main.length||!sub.length)fail(e,'EMPTY','Care areas, mainfields and subfields must be nonempty');
+ if(care.length>5000||main.length>10000||sub.length>50000){fail(e,'INPUT_LIMIT','Layout exceeds interactive geometry checker limits');return report('sem',m,e,w,checks,'partial')}
  const meta=csv(input.metadata),rows=meta.filter(r=>r.length>=2&&Number.isFinite(Number(r[0]))&&Number.isFinite(Number(r[1]))&&Number(r[0])>0&&Number(r[1])>0);
  const mainSizes=[...new Set(rows.map(r=>Number(r[0])))],subSizes=[...new Set(rows.map(r=>Number(r[1])))];
  if(!mainSizes.length)fail(e,'METADATA','No valid main-field size found');
  const mainSize=mainSizes[0];
  if(mainSizes.length>1)w.push({code:'MULTIPLE_MAIN_SIZES',message:'Metadata lists multiple main-field sizes; each listed size is accepted.'});
  if(!subSizes.length)fail(e,'METADATA','No subfield size found');
+ if(meta.slice(1).some(row=>row.length!==2||row.some(v=>v===''||!Number.isFinite(Number(v))||Number(v)<=0)))fail(e,'METADATA_ROW','Invalid or empty field-size metadata row');
  for(let f of main){if(mainSizes.length&&!mainSizes.some(s=>close(f.x2-f.x1,s)&&close(f.y2-f.y1,s)))fail(e,'MAIN_SIZE','Mainfield '+f.id+' must match a permitted metadata size')}
  const lookup=new Map(main.map(f=>[f.id,f]));
  for(let f of sub){const parent=lookup.get(f.parent);if(!parent)fail(e,'PARENT','Subfield '+f.id+' references nonexistent mainfield '+f.parent);else if(!inside(f,parent))fail(e,'CONTAINMENT','Subfield '+f.id+' extends beyond mainfield '+f.parent);if(subSizes.length&&!subSizes.some(s=>close(f.x2-f.x1,s)&&close(f.y2-f.y1,s)))fail(e,'SUB_SIZE','Subfield '+f.id+' has a size not allowed by metadata')}
@@ -98,10 +104,18 @@ function close(a,b){return Math.abs(a-b)<=Math.max(TOL,Math.abs(b)*1e-6)}
 function schedule(input,output,milestone){
  const e=[],w=[],checks=[];const m=String(milestone??'');
  if(!input||!output||!Array.isArray(input.steps)||!Array.isArray(input.machines)||!Array.isArray(input.wafers)||!Array.isArray(output.schedule)){fail(e,'SCHEMA','Expected steps, machines, wafers, schedule arrays');return report('schedule',m,e,w,checks,'partial')}
+ if(!input.steps.length||!input.machines.length||!input.wafers.length)fail(e,'EMPTY_INPUT','Steps, machines and wafers must all be nonempty');
+ if(input.steps.length>1000||input.machines.length>2000||input.wafers.length>5000||output.schedule.length>100000){fail(e,'INPUT_LIMIT','Schedule exceeds interactive validation limits');return report('schedule',m,e,w,checks,'partial')}
+ const stepNames=new Set(),machineNames=new Set(),waferNames=new Set();
+ for(const step of input.steps){if(!step||typeof step.id!=='string'||!step.id){fail(e,'STEP_ID','Step needs a nonempty string ID');continue}if(stepNames.has(step.id))fail(e,'DUPLICATE_STEP','Duplicate step ID '+step.id);stepNames.add(step.id);if(step.parameters!==undefined&&(typeof step.parameters!=='object'||step.parameters===null||Array.isArray(step.parameters)))fail(e,'PARAMETERS','Step '+step.id+' has invalid parameters')}
+ for(const machine of input.machines){if(!machine||typeof machine.machine_id!=='string'||!machine.machine_id){fail(e,'MACHINE_ID','Machine needs an ID');continue}if(machineNames.has(machine.machine_id))fail(e,'DUPLICATE_MACHINE','Duplicate machine ID '+machine.machine_id);machineNames.add(machine.machine_id);if(!stepNames.has(machine.step_id))fail(e,'UNKNOWN_MACHINE_STEP','Machine '+machine.machine_id+' references unknown step '+machine.step_id)}
+ for(const wafer of input.wafers){if(!wafer||typeof wafer.type!=='string'||!wafer.type){fail(e,'WAFER_TYPE','Wafer type must be a string');continue}if(waferNames.has(wafer.type))fail(e,'DUPLICATE_WAFER_TYPE','Duplicate wafer type '+wafer.type);waferNames.add(wafer.type);if(!wafer.processing_times||typeof wafer.processing_times!=='object'||!Object.keys(wafer.processing_times).length){fail(e,'PROCESSING_TIMES','Wafer type '+wafer.type+' needs processing times');continue}for(const [step,duration] of Object.entries(wafer.processing_times)){if(!stepNames.has(step))fail(e,'UNKNOWN_WAFER_STEP','Wafer '+wafer.type+' references unknown step '+step);if(!finite(duration)||duration<=0)fail(e,'INVALID_DURATION','Wafer '+wafer.type+' step '+step+' requires positive duration')}}
+ if(e.length)return report('schedule',m,e,w,checks,'complete');
  const steps=new Map(input.steps.map(s=>[s.id,s])),machines=new Map(input.machines.map(x=>[x.machine_id,x])),expected=new Map();
  for(let wafer of input.wafers){if(!Number.isInteger(wafer.quantity)||wafer.quantity<1){fail(e,'QUANTITY','Invalid wafer quantity');continue}for(let i=1;i<=wafer.quantity;i++)for(let [step,dur] of Object.entries(wafer.processing_times||{})){let id=wafer.type+'-'+i+'|'+step;if(expected.has(id))fail(e,'DUPLICATE_INPUT','Duplicate input task '+id);expected.set(id,dur)}}
  const seen=new Map(),perMachine=new Map(),perWafer=new Map();
  for(let [idx,r] of output.schedule.entries()){
+ if(!r||typeof r!=='object'||Array.isArray(r)){fail(e,'TASK_FORMAT','Invalid schedule entry at index '+idx);continue}
  const id=r.wafer_id+'|'+r.step,loc='schedule['+idx+']',mac=machines.get(r.machine),duration=expected.get(id);
  if(!expected.has(id))fail(e,'UNKNOWN_TASK','Unexpected wafer/step '+id,loc);
  if(seen.has(id))fail(e,'DUPLICATE_TASK','Repeated task '+id,loc);else seen.set(id,r);
@@ -192,7 +206,7 @@ function binning(input,output,milestone='3A1'){
    const rows=csv(txt);if(!isHeader(rows[0],['bin_id','rule']))fail(e,'RULE_HEADER','Rule file '+(i+1)+' must start with BIN_ID,RULE');
    for(let row of rows.slice(1)){if(row.length<2||!row[0]){fail(e,'RULE_COLUMNS','Invalid rule row');continue}if(rules.has(row[0]))fail(e,'RULE_ID','Duplicate BIN_ID '+row[0]);rules.set(row[0],row.slice(1).join(','))}
  }
- const precedence=(input.precedence.match(/\d+/g)||[]);if(!precedence.length)fail(e,'PRECEDENCE','No BIN_ID precedence found');
+ const precedenceText=input.precedence.trim(),precedence=(precedenceText.match(/\d+/g)||[]);if(!/^\d+(?:\s*>>\s*\d+)*$/.test(precedenceText))fail(e,'PRECEDENCE_FORMAT','Precedence must be BIN_ID >> BIN_ID >> ...');if(!precedence.length)fail(e,'PRECEDENCE','No BIN_ID precedence found');if(new Set(precedence).size!==precedence.length)fail(e,'PRECEDENCE_DUPLICATE','Duplicate BIN_ID in precedence chain');
  for(let id of rules.keys())if(!precedence.includes(id))fail(e,'PRECEDENCE_MISSING','Rule '+id+' missing from precedence file');
  let valid=0;
  for(let [id,row] of defects){
@@ -202,7 +216,7 @@ function binning(input,output,milestone='3A1'){
    for(let [bin,rule] of rules){try{if(evalBinningRule(rule,Number(row[3])))matches.push(bin)}catch(ex){fail(e,'RULE_PARSE',ex.message)}}
    const expected=precedence.find(bin=>matches.includes(bin));
    if(expected===undefined){fail(e,'UNBINNED','No binning rule matches defect '+id);continue}
-   if(!Number.isFinite(Number(r[4]))||Number(r[4])!==Number(expected))fail(e,'WRONG_BIN','Defect '+id+' expected BIN '+expected+', got '+r[4]);
+   if(r[4]===''||!Number.isFinite(Number(r[4]))||Number(r[4])!==Number(expected))fail(e,'WRONG_BIN','Defect '+id+' expected BIN '+expected+', got '+r[4]);
    else valid++;
  }
  for(let id of results.keys())if(!defects.has(id))fail(e,'EXTRA_DEFECT','Unknown output defect '+id);
