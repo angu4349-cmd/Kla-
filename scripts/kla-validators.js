@@ -102,7 +102,8 @@ function sem(input,output,milestone){
 }
 function close(a,b){return Math.abs(a-b)<=Math.max(TOL,Math.abs(b)*1e-6)}
 function schedule(input,output,milestone){
- const e=[],w=[],checks=[];const m=String(milestone??'');
+ const e=[],w=[],checks=[];const m=String(milestone??'').replace(/^milestone/i,'').toLowerCase();
+ if(!['0','1','2a','2b','3a','3b','3c','4a','4b','4c','5a','5b','6a','6b'].includes(m)){fail(e,'MILESTONE','Unknown wafer processing milestone '+m);return report('schedule',m,e,w,checks,'complete')}
  if(!input||!output||!Array.isArray(input.steps)||!Array.isArray(input.machines)||!Array.isArray(input.wafers)||!Array.isArray(output.schedule)){fail(e,'SCHEMA','Expected steps, machines, wafers, schedule arrays');return report('schedule',m,e,w,checks,'partial')}
  if(!input.steps.length||!input.machines.length||!input.wafers.length)fail(e,'EMPTY_INPUT','Steps, machines and wafers must all be nonempty');
  if(input.steps.length>1000||input.machines.length>2000||input.wafers.length>5000||output.schedule.length>100000){fail(e,'INPUT_LIMIT','Schedule exceeds interactive validation limits');return report('schedule',m,e,w,checks,'partial')}
@@ -254,7 +255,7 @@ function mapping(input,output,milestone){
    if(!xy(pos)){fail(e,'POINT','Missing valid wafer-coordinate [x,y] for entry '+i);continue}
    valid++;
    const index=item?.index||item?.dieIndex;
-   if(index!==undefined){if(!xy(index)){fail(e,'INDEX','Die index must be [row,column] at entry '+i)}else{let key=index.join(',');if(m<=3&&indices.has(key))fail(e,'DUPLICATE_DIE','Repeated die index '+key);indices.add(key)}}
+   if(index===undefined){fail(e,'INDEX_MISSING','Die index must be provided at entry '+i)}else{if(!xy(index)||!index.every(Number.isInteger)){fail(e,'INDEX','Die index must contain two integers at entry '+i)}else{let key=index.join(',');if(m<=3&&indices.has(key))fail(e,'DUPLICATE_DIE','Repeated die index '+key);indices.add(key)}}
    if(m<=3&&finite(radius)){
     const size=input.DieSize||input.dieSize;
     if(xy(size)&&size.every(x=>x>0)){
