@@ -17,7 +17,7 @@ if(location.hash==='#validator')state.tab='validator';
 const msParam=Number(url.searchParams.get('milestone'));
 if(Number.isInteger(msParam)&&msParam>0)state.milestone=msParam-1;
 function active(){return problems.find(p=>p.id===state.id)||problems[3];}
-function currentMilestone(){return state.id==='route'||state.id==='mapping'?state.milestone+1:state.id==='workflow'?['1A','1B','2A','2B','3A1'][state.milestone]:state.id==='schedule'?['0','1','2a','2b','3a','3b','3c','4a','4b','4c','5a','5b','6a','6b'][state.milestone]:state.milestone;}
+function currentMilestone(){return state.id==='route'||state.id==='mapping'||state.id==='sem'?state.milestone+1:state.id==='workflow'?['1A','1B','2A','2B','3A1'][state.milestone]:state.id==='schedule'?['0','1','2a','2b','3a','3b','3c','4a','4b','4c','5a','5b','6a','6b'][state.milestone]:state.milestone;}
 function cases(){if(state.id!=='route')return [];return state.manifest?.route?.milestones?.find(m=>m.number===currentMilestone())?.cases||[];}
 function selected(){return cases().find(c=>c.case===state.caseNum)||cases()[0]||null;}
 function updateUrl(){const u=new URL(location.href);u.searchParams.set('ps',state.id);u.searchParams.set('milestone',String(state.milestone+1));history.replaceState(null,'',u);}
