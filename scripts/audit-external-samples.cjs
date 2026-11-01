@@ -8,6 +8,20 @@ try{
  const result=V.sem({careareas:read('CareAreas.csv'),metadata:read('metadata.csv')},{mainfields:read('mainfields.csv'),subfields:read('subfields.csv')},1);
  out.sem={verdict:result.verdict,errors:result.errors.slice(0,5),checks:result.checks};
 }catch(e){out.sem={error:e.message}}
+out.semDatasets=[];
+for(let i=1;i<=6;i++){
+ try{
+  const folder=i===1?'Dataset-0/1st/metadata.csv':'Dataset-1/'+(['','', '2nd','3rd','4th','5th','6th'][i])+'/metadata.csv';
+  const metadata=fs.readFileSync(path.join(semDir,folder),'utf8');
+  const values=metadata.trim().split(/\r?\n/).slice(1).find(r=>/^\s*\d/.test(r)).split(',').map(Number);
+  const [mainSize,subSize]=values;
+  if(!Number.isFinite(mainSize)||!Number.isFinite(subSize))throw Error('Could not parse dataset metadata');
+  const result=V.sem(
+    {careareas:'0,0,'+subSize+',0,'+subSize,metadata},
+    {mainfields:'0,0,'+mainSize+',0,'+mainSize,subfields:'0,0,'+subSize+',0,'+subSize+',0'},i);
+  out.semDatasets.push({dataset:i,verdict:result.verdict,errors:result.errors.slice(0,3)});
+ }catch(e){out.semDatasets.push({dataset:i,error:e.message})}
+}
 for(let name of ['Milestone0','Milestone1','Milestone2a','Milestone2b','Milestone3a','Milestone3b','Milestone3c','Milestone4a','Milestone4b','Milestone4c','Milestone5a','Milestone5b','Milestone6a','Milestone6b']){
  try{
  const dir=name.startsWith('Milestone6')?'Input/Extra':'Input';
@@ -29,3 +43,8 @@ try{
  }
 }catch(e){out.workflowError=e.message}
 console.log(JSON.stringify(out,null,2));
+const bad=out.sem?.verdict!=='PASS'||out.semDatasets.some(x=>x.verdict!=='PASS')
+ ||out.schedule.length!==14||out.schedule.some(x=>x.verdict!=='PASS')
+ ||out.binning?.errorCount!==0||out.workflow?.length!==4||out.workflow.some(x=>x.errorCount!==0);
+if(bad){console.error('Public reference validation audit failed');process.exitCode=1;}
+
