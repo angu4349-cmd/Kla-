@@ -62,7 +62,7 @@ async function validate(root,window,values,expected){
    await pause(20);
  }
  const label=root.querySelector('.val-summary h3')?.textContent;
- assert.equal(label,expected,'Unexpected validator result '+root.textContent.slice(-500));
+ assert.equal(label,expected,'Unexpected validator result '+(root.textContent||root.body?.textContent||'').slice(-500));
  assert.ok(root.querySelector('#validatorDownload'),'Missing report export button');
 }
 async function main(){
