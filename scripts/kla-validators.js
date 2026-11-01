@@ -30,6 +30,7 @@ function route(input,output,milestone){
  if(input.Dies.length>5000){fail(e,'DIE_LIMIT','Input has more than 5,000 dies; interactive validator limit exceeded');return report('route',m,e,w,checks,'partial')}
  for(let i=0;i<centers.length;i++)for(let j=0;j<i;j++)if(near(centers[i],centers[j])){fail(e,'DUPLICATE_DIE_CENTER','Distinct input dies share indistinguishable inspection centers');break}
  if(m>=2&&!finite(input.InitialAngle))fail(e,'INITIAL_ANGLE','InitialAngle must be finite for camera rotation');
+ for(let i=0;i<centers.length;i++)if(near(path[0],centers[i])){used.add(i);visitIndices.push([0,i]);}
  for(let j=1;j<path.length;j++){let hits=[];for(let i=0;i<centers.length;i++)if(near(path[j],centers[i]))hits.push(i);if(hits.length){let free=hits.find(i=>!used.has(i));if(free===undefined){fail(e,'DUPLICATE_DIE','Die center visited more than once','Path['+j+']');continue}used.add(free);visitIndices.push([j,free]);}}
  if(used.size!==centers.length)fail(e,'MISSING_DIES','Missing '+(centers.length-used.size)+' of '+centers.length+' required die centers');
  checks.push({name:'Required die centers',passed:used.size===centers.length,detail:used.size+'/'+centers.length+' visited'});
