@@ -47,6 +47,7 @@ check('valid binning partial',V.binning(binInput,binOutput).verdict==='PARTIAL')
 check('wrong bin detected',V.binning(binInput,{results:binOutput.results.replace('80,501','80,500')}).verdict==='FAIL');
 check('missing bin result',V.binning(binInput,{results:'Id,X,Y,Signal,Bincode'+String.fromCharCode(10)+'1,2,3,20,500'}).verdict==='FAIL');
 // Adversarial cases that previously could slip through overly lenient checks.
+check('die at initial position counts as inspected',V.route({...routeInput(1),Dies:[die(0,0)]},{Path:[[0,0]],TotalTime:0},1).verdict==='PASS');
 check('route duplicate target centers rejected',V.route({...routeInput(1),Dies:[die(10,0),die(10,0)]},routeOutput(1),1).verdict==='FAIL');
 check('route invalid stage speed rejected',V.route({...routeInput(1),StageVelocity:0},routeOutput(1),1).verdict==='FAIL');
 check('route milestone 4 requires forbidden-zone input',V.route({...routeInput(4),ForbiddenZones:undefined},routeOutput(4),4).verdict==='FAIL');
