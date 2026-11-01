@@ -39,6 +39,7 @@ function newPage(html,url) {
    throw Error('Network disabled for browser test: '+path);
  };
  dom.window.scrollTo=()=>{};
+ dom.window.requestAnimationFrame=callback=>{queueMicrotask(()=>{if(!dom.window.__closed)callback(Date.now())});return 1};
  for(let file of ['kla-validators.js','validator-ui.js','ps_solutions.js'])dom.window.eval(src(file));
  return dom;
 }
@@ -82,6 +83,7 @@ async function main(){
   assert.ok(mount.querySelector('#validatorRun'),id+' has no run button');
   await validate(mount,w,fixtures[id],id==='sem'||id==='schedule'||id==='route'?'PASS':'PARTIAL');
   counter++;
+  w.__closed=true;
   w.close();
  }
  const solutionPage=src('solutions.html');
